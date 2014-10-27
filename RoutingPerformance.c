@@ -9,10 +9,14 @@
 #include <string.h>
 
 typedef struct _node{
-    Node * neighbours[];
+    node * neighbours[];
     int * distances[];
     char * name;
-} Node;
+} node;
+
+typedef struct _node * Node;
+
+Node newNode(node * neighbours[], int * distances[], char * name);
 
 int main (int argc, char* argv[]) {
     // Process args and store their values - 5 args
@@ -22,12 +26,24 @@ int main (int argc, char* argv[]) {
     char * workload_file = argv[4];
     int packet_rate = atoi(argv[5]);
     
-
+    
 
     printf("%s %s %s %s %d\n", network_scheme, routing_scheme, topology_file, workload_file, packet_rate);
 
 
     return EXIT_SUCCESS;
 }
+
+
+// NEED TO FRIGGIN TEST THIS SO HARD
+Node newNode(node * neighbours[], int * distances[], char * name) {
+    Node n = malloc(sizeof(struct _node));
+    n->neighbours = neighbours;
+    n->distances = distances;
+    n->name = name;
+
+    return s;
+}
+
 
 
