@@ -8,6 +8,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct _node{
+    Node * neighbours[];
+    int * distances[];
+    char * name;
+} Node;
 
 int main (int argc, char* argv[]) {
     // Process args and store their values - 5 args
@@ -26,8 +31,3 @@ int main (int argc, char* argv[]) {
 }
 
 
-typedef struct _node{
-	Node * neighbours[];
-	int * distances[];
-	char * name;
-} Node;
