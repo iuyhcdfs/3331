@@ -25,3 +25,9 @@ int main (int argc, char* argv[]) {
     return EXIT_SUCCESS;
 }
 
+
+typedef struct _node{
+	Node * neighbours[];
+	int * distances[];
+	char * name;
+} Node;
