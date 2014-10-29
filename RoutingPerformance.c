@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 // class: connection between two nodes
 typedef struct {
     char end1;
@@ -20,30 +21,48 @@ typedef _link * Link;
 // malloc-er
 Link newLink(void);
 
+
 // class: request for network load
 typedef struct {
     double timeToConnect; 
     char origin;
     char destination;
     double timeToLive;
+    char path[26];
+    
 } _request;
 typedef _request * Request;
 // malloc-er
 Request newRequest(void);
 
+
+// class: stats for the result of a request
+typedef struct {
+    int hops;
+    double delay;
+    int blockedPackets;
+    int routedPackets;
+} _stat;
+typedef _stat * Stat;
+Stat newStat(void);
+
+
+
 // ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS
-int routeSHP(Request request, Link link[]){
-    return EXIT_SUCCESS;
+Stat routeSHP(Request request, Link link[]){
+    Stat temp = newStat();
+
+    return temp;
 }
-int routeSDP(Request request, Link link[]) {
-    return EXIT_SUCCESS;
+Stat routeSDP(Request request, Link link[]) {
+    Stat temp = newStat();
+    return temp;
 }
-int routeLLP(Request request, Link link[]) {
-    return EXIT_SUCCESS;
+Stat routeLLP(Request request, Link link[]) {
+    Stat temp = newStat();
+    return temp;
 }
 
-//
-Link * adjacentNodes(char node, );
 
 // printing functions
 void printAllLinks(Link * linkArray, int linkSize);
@@ -131,27 +150,26 @@ int main (int argc, char* argv[]) {
     // SHORTEST HOP PATH
     // Algorithm 1: basic dijkstra
     // find routes for packets
-    
     // transmit. drop if link is full
-
-    if(routing_scheme == "SHP"){
+    if(strcmp(routing_scheme, "SHP")){
+        // for each request apply algorithm 
 
     }
 
     // SHORTEST DELAY PATH
     // Algorithm 2: dijkstra with weights
-
-    if(routing_scheme == "SDP"){
+    //
+    if(strcmp(routing_scheme, "SDP")){
+        // for each request apply algorithm 
 
     }
 
     // LEAST LOADED PATH
-    // Algorithm 3: 
-    if(routing_scheme == "LLP"){
+    // Algorithm 3: dijkstra with time-variable weights
+    if(strcmp(routing_scheme, "LLP")){
+        // for each request apply algorithm 
 
     }
-
-
 
     // print out specific results in standard output
    /*
@@ -214,3 +232,10 @@ Request newRequest(void){
     return temp;
 }
 
+Stat newStat(void){
+    Stat temp = malloc(sizeof(_stat));
+    temp->hops = 0;
+    temp->delay = 0;
+    temp->blockedPackets = 0;
+    temp->routedPackets = 0;
+}
