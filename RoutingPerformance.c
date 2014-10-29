@@ -125,7 +125,8 @@ int main (int argc, char* argv[]) {
     */
 
     // run algorithms, store results 
-
+    
+    
     // print out specific results in standard output
    /*
     printf("total number of virtual circuit requests: %d\n",  );
@@ -137,6 +138,7 @@ int main (int argc, char* argv[]) {
     average number of hops per circuit: 5.42
     average cumulative propagation delay per circuit: 120.54
 */
+
 
     return EXIT_SUCCESS;
 }
