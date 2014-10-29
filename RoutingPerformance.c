@@ -28,13 +28,17 @@ typedef struct {
     char origin;
     char destination;
     double timeToLive;
-    char path[26];
-    
 } _request;
 typedef _request * Request;
 // malloc-er
 Request newRequest(void);
 
+// struct: event to schedule a packet's transferral
+typedef struct {
+    Request source;
+    double eventTime;
+} _event;
+typedef _event * Event;
 
 // class: stats for the result of a request
 typedef struct {
