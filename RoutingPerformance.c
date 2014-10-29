@@ -16,15 +16,8 @@ typedef struct {
     int maxLoad;
 } _link;
 typedef _link * Link;
-
-Link newLink(void){
-    Link temp = malloc(sizeof(_link));
-    temp->end1 = '0';
-    temp->end2 = '0';
-    temp->distance = 0;
-    temp->maxLoad = 0;
-    return temp;
-}
+// malloc-er
+Link newLink(void);
 
 // class: request for network load
 typedef struct {
@@ -34,49 +27,25 @@ typedef struct {
     double timeToLive;
 } _request;
 typedef _request * Request;
+// malloc-er
+Request newRequest(void);
 
-Request newRequest(void){
-    Request temp = malloc(sizeof(_request));
-    temp->timeToConnect = 0;
-    temp->origin = '0';
-    temp->destination = '0';
-    temp->timeToLive = 0;
-    return temp;
-}
-
-
-// todo: shortest hop, shortest delay, least loaded, algorithms 
+// ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS
 int routeSHP(Request request, Link link[]){
     return EXIT_SUCCESS;
 }
-
 int routeSDP(Request request, Link link[]) {
     return EXIT_SUCCESS;
 }
-
 int routeLLP(Request request, Link link[]) {
     return EXIT_SUCCESS;
 }
 
-void printAll(Link * linkArray, Request* requestArray, int linkSize, int requestSize) {
-    for (int i=0; i < linkSize; i++) {
-        printf("\nLink %d: \n", i);
-        printf("End1:    %c\nEnd2:    %c\nDistance:%d\nmaxLoad :%d\n\n",
-            linkArray[i]->end1,
-            linkArray[i]->end2,
-            linkArray[i]->distance,
-            linkArray[i]->maxLoad);
-    }
-    for (int i=0; i < requestSize; i++) {
-        printf("\nRequest %d: \n", i);
-        printf("TTC:     %f\nOrigin:  %c\nDest:    %c\nTTL:     %f\n\n",
-            requestArray[i]->timeToConnect,
-            requestArray[i]->origin,
-            requestArray[i]->destination,
-            requestArray[i]->timeToLive);
-    }
-}
+// printing functions
+void printAllLinks(Link * linkArray, int linkSize);
+void printAllRequests(Request * requestArray, int requestSize);
 
+// MAIN
 int main (int argc, char* argv[]) {
     // Process args and store their values - 5 args
     char * network_scheme = argv[1];
@@ -116,7 +85,7 @@ int main (int argc, char* argv[]) {
     // make structs for text
     tFile = fopen(topology_file, "rt");
     while(EOF != fscanf(tFile, "%[^\n]\n", buffer)){
-        printf("test a %s\n",buffer);
+        //printf("test a %s\n",buffer);
         buffer2 = buffer;
         Link temp = newLink();
         buffer2 = strtok(buffer2, " ");
@@ -133,7 +102,7 @@ int main (int argc, char* argv[]) {
 
     wFile = fopen(workload_file, "rt");
     while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
-        printf("test a %s\n",buffer);
+        //printf("test a %s\n",buffer);
         buffer2 = buffer;
         Request temp = newRequest();
         buffer2 = strtok(buffer2, " ");
@@ -147,26 +116,72 @@ int main (int argc, char* argv[]) {
         requestArray[rArrayCount] = temp;
         rArrayCount++;
     }
-    printf("wat\n");
-    printf("%c\n\n",linkArray[0]->end1);
-    printAll(linkArray, requestArray, lArrayCount, rArrayCount);
 
-    printf("wat\n");
-    // run algorithms, print out specific results in standard output
-/*
-    total number of virtual circuit requests: 200
-    total number of packets: 4589
-    number of successfully routed packets: 3654
+    // print out things 
+    /*
+    printAllLinks(linkArray, lArrayCount);
+    printAllRequests(requestArray, rArrayCount);
+    printf("files read!s\n");
+    */
+
+    // run algorithms, store results 
+
+    // print out specific results in standard output
+   /*
+    printf("total number of virtual circuit requests: %d\n",  );
+    printf("total number of packets: %d\n",                   );
+    printf("number of successfully routed packets: %d\n",     );
     percentage of successfully routed packets: 79.63
     number of blocked packets: 935
     percentage of blocked packets: 20.37
     average number of hops per circuit: 5.42
     average cumulative propagation delay per circuit: 120.54
-*/    
-    
-    return EXIT_SUCCESS;
+*/
 
+    return EXIT_SUCCESS;
 }
 
 
+
+// Function implementation
+
+void printAllLinks(Link * linkArray, int linkSize) {
+    for (int i=0; i < linkSize; i++) {
+        printf("\nLink %d: \n", i);
+        printf("End1:    %c\nEnd2:    %c\nDistance:%d\nmaxLoad :%d\n\n",
+            linkArray[i]->end1,
+            linkArray[i]->end2,
+            linkArray[i]->distance,
+            linkArray[i]->maxLoad);
+    }
+}
+
+void printAllRequests(Request * requestArray, int requestSize){
+    for (int i=0; i < requestSize; i++) {
+        printf("\nRequest %d: \n", i);
+        printf("TTC:     %f\nOrigin:  %c\nDest:    %c\nTTL:     %f\n\n",
+            requestArray[i]->timeToConnect,
+            requestArray[i]->origin,
+            requestArray[i]->destination,
+            requestArray[i]->timeToLive);
+    }
+}
+
+Link newLink(void){
+    Link temp = malloc(sizeof(_link));
+    temp->end1 = '0';
+    temp->end2 = '0';
+    temp->distance = 0;
+    temp->maxLoad = 0;
+    return temp;
+}
+
+Request newRequest(void){
+    Request temp = malloc(sizeof(_request));
+    temp->timeToConnect = 0;
+    temp->origin = '0';
+    temp->destination = '0';
+    temp->timeToLive = 0;
+    return temp;
+}
 
