@@ -14,6 +14,7 @@ typedef struct {
     char end2;
     int distance;
     int maxLoad;
+    int currentLoad;
 } _link;
 typedef _link * Link;
 // malloc-er
@@ -40,6 +41,9 @@ int routeSDP(Request request, Link link[]) {
 int routeLLP(Request request, Link link[]) {
     return EXIT_SUCCESS;
 }
+
+//
+Link * adjacentNodes(char node, );
 
 // printing functions
 void printAllLinks(Link * linkArray, int linkSize);
@@ -124,9 +128,31 @@ int main (int argc, char* argv[]) {
     printf("files read!s\n");
     */
 
-    // run algorithms, store results 
+    // SHORTEST HOP PATH
+    // Algorithm 1: basic dijkstra
+    // find routes for packets
     
-    
+    // transmit. drop if link is full
+
+    if(routing_scheme == "SHP"){
+
+    }
+
+    // SHORTEST DELAY PATH
+    // Algorithm 2: dijkstra with weights
+
+    if(routing_scheme == "SDP"){
+
+    }
+
+    // LEAST LOADED PATH
+    // Algorithm 3: 
+    if(routing_scheme == "LLP"){
+
+    }
+
+
+
     // print out specific results in standard output
    /*
     printf("total number of virtual circuit requests: %d\n",  );
@@ -175,6 +201,7 @@ Link newLink(void){
     temp->end2 = '0';
     temp->distance = 0;
     temp->maxLoad = 0;
+    temp->currentLoad = 0;
     return temp;
 }
 
