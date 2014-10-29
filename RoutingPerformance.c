@@ -15,7 +15,7 @@ typedef struct {
     long double distance;
     int maxLoad;
 } _link;
-typedef * _link Link;
+typedef _link * Link;
 
 // class: request for network load
 typedef struct {
@@ -24,20 +24,21 @@ typedef struct {
     char destination;
     long double timeToLive;
 } _request;
-typedef * _request Request;
+typedef _request * Request;
 
 // todo: shortest hop, shortest delay, least loaded, algorithms 
 int routeSHP(Request request, Link link[]){
-
+    return EXIT_SUCCESS;
 }
 
 int routeSDP(Request request, Link link[]) {
-
+    return EXIT_SUCCESS;
 }
 
 int routeLLP(Request request, Link link[]) {
-
+    return EXIT_SUCCESS;
 }
+
 
 int main (int argc, char* argv[]) {
     // Process args and store their values - 5 args
@@ -57,25 +58,39 @@ int main (int argc, char* argv[]) {
     wFile = fopen(workload_file, "rt");
 
     char buffer[50];
-
-    int nameCount = 0;
+    // figure out how many lines in each file
+    int tCount = 0;
+    int wCount = 0;
     while(EOF != fscanf(tFile, "%[^\n]\n", buffer)){
-        printf("%s\n",buffer);
-        for(){
+        tCount++;
+    }
+    while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
+        wCount++;
+    }
+    printf("debug!: topology %d workload %d\n", tCount, wCount);
 
-        }
+    // make arrays of structs for the files
+   // Link linkArray[tCount];
+   // Request requestArray[wCount];
+
+    char * buffer2;
+    // make structs for text
+    tFile = fopen(topology_file, "rt");
+    wFile = fopen(workload_file, "rt");
+    while(EOF != fscanf(tFile, "%[^\n]\n", buffer)){
+        printf("test a %s\n",buffer);
+        buffer2 = buffer;
+        buffer2 = strtok(buffer2, " ");
+        printf("test b %s\n",buffer2);
+        buffer2 = strtok(NULL, " ");
+        printf("test c %s\n",buffer2);
+        buffer2 = strtok(NULL, " ");
+        printf("test d %s\n",buffer2);
+        buffer2 = strtok(NULL, " ");
+        printf("test e %s\n",buffer2);
     }
 
-    // create adjacency matrix for connections, -1 means not connected
-    int networkMap[nameCount][nameCount];
-    for(int x = 0; x < nameCount; x++){
-        for(int y = 0; y < nameCount; y++){
-            networkMap[x][y] = -1;
-        }
-    }
-    printf("%d\n",networkMap[4][4]);
-    getStringIndex(names, 4, buffer);
-
+    
     printf("wat\n");
     // run algorithms, print out specific results in standard output
 /*
