@@ -8,17 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// todo: shortest hop, shortest delay, least loaded, algorithms 
-int routeSHP(Request request, Link link[]){
-
-}
-int routeSDP(Request request, Link link[]){
-
-}
-int routeLLP(Request request, Link link[]){
-
-}
-
 // class: connection between two nodes
 typedef struct {
     char end1;
@@ -36,6 +25,19 @@ typedef struct {
     long double timeToLive;
 } _request;
 typedef * _request Request;
+
+// todo: shortest hop, shortest delay, least loaded, algorithms 
+int routeSHP(Request request, Link link[]){
+
+}
+
+int routeSDP(Request request, Link link[]) {
+
+}
+
+int routeLLP(Request request, Link link[]) {
+
+}
 
 int main (int argc, char* argv[]) {
     // Process args and store their values - 5 args
