@@ -12,19 +12,38 @@
 typedef struct {
     char end1;
     char end2;
-    long double distance;
+    int distance;
     int maxLoad;
 } _link;
 typedef _link * Link;
 
+Link newLink(void){
+    Link temp = malloc(sizeof(_link));
+    temp->end1 = '0';
+    temp->end2 = '0';
+    temp->distance = 0;
+    temp->maxLoad = 0;
+    return temp;
+}
+
 // class: request for network load
 typedef struct {
-    long double timeToConnect; 
+    double timeToConnect; 
     char origin;
     char destination;
-    long double timeToLive;
+    double timeToLive;
 } _request;
 typedef _request * Request;
+
+Request newRequest(void){
+    Request temp = malloc(sizeof(_request));
+    temp->timeToConnect = 0;
+    temp->origin = '0';
+    temp->destination = '0';
+    temp->timeToLive = 0;
+    return temp;
+}
+
 
 // todo: shortest hop, shortest delay, least loaded, algorithms 
 int routeSHP(Request request, Link link[]){
@@ -39,6 +58,24 @@ int routeLLP(Request request, Link link[]) {
     return EXIT_SUCCESS;
 }
 
+void printAll(Link * linkArray, Request* requestArray, int linkSize, int requestSize) {
+    for (int i=0; i < linkSize; i++) {
+        printf("\nLink %d: \n", i);
+        printf("End1:    %c\nEnd2:    %c\nDistance:%d\nmaxLoad :%d\n\n",
+            linkArray[i]->end1,
+            linkArray[i]->end2,
+            linkArray[i]->distance,
+            linkArray[i]->maxLoad);
+    }
+    for (int i=0; i < requestSize; i++) {
+        printf("\nRequest %d: \n", i);
+        printf("TTC:     %f\nOrigin:  %c\nDest:    %c\nTTL:     %f\n\n",
+            requestArray[i]->timeToConnect,
+            requestArray[i]->origin,
+            requestArray[i]->destination,
+            requestArray[i]->timeToLive);
+    }
+}
 
 int main (int argc, char* argv[]) {
     // Process args and store their values - 5 args
@@ -70,27 +107,50 @@ int main (int argc, char* argv[]) {
     printf("debug!: topology %d workload %d\n", tCount, wCount);
 
     // make arrays of structs for the files
-   // Link linkArray[tCount];
-   // Request requestArray[wCount];
+    Link linkArray[tCount];
+    int lArrayCount = 0;
+    Request requestArray[wCount];
+    int rArrayCount = 0;
 
     char * buffer2;
     // make structs for text
     tFile = fopen(topology_file, "rt");
-    wFile = fopen(workload_file, "rt");
     while(EOF != fscanf(tFile, "%[^\n]\n", buffer)){
         printf("test a %s\n",buffer);
         buffer2 = buffer;
+        Link temp = newLink();
         buffer2 = strtok(buffer2, " ");
-        printf("test b %s\n",buffer2);
+        temp->end1 = buffer2[0];
         buffer2 = strtok(NULL, " ");
-        printf("test c %s\n",buffer2);
+        temp->end2 = buffer2[0];
         buffer2 = strtok(NULL, " ");
-        printf("test d %s\n",buffer2);
+        temp->distance = atoi(buffer2);
         buffer2 = strtok(NULL, " ");
-        printf("test e %s\n",buffer2);
+        temp->maxLoad = atoi(buffer2);
+        linkArray[lArrayCount] = temp;
+        lArrayCount++;
     }
 
-    
+    wFile = fopen(workload_file, "rt");
+    while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
+        printf("test a %s\n",buffer);
+        buffer2 = buffer;
+        Request temp = newRequest();
+        buffer2 = strtok(buffer2, " ");
+        temp->timeToConnect = atof(buffer2);
+        buffer2 = strtok(NULL, " ");
+        temp->origin = buffer2[0];
+        buffer2 = strtok(NULL, " ");
+        temp->destination = buffer2[0];
+        buffer2 = strtok(NULL, " ");
+        temp->timeToLive = atof(buffer2);
+        requestArray[rArrayCount] = temp;
+        rArrayCount++;
+    }
+    printf("wat\n");
+    printf("%c\n\n",linkArray[0]->end1);
+    printAll(linkArray, requestArray, lArrayCount, rArrayCount);
+
     printf("wat\n");
     // run algorithms, print out specific results in standard output
 /*
