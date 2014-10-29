@@ -9,37 +9,33 @@
 #include <string.h>
 
 // todo: shortest hop, shortest delay, least loaded, algorithms 
-int routeSHP();
-int routeSDP();
-int routeLLP();
+int routeSHP(Request request, Link link[]){
 
-// class: word for convenience
+}
+int routeSDP(Request request, Link link[]){
+
+}
+int routeLLP(Request request, Link link[]){
+
+}
+
+// class: connection between two nodes
 typedef struct {
-    char * text;
-    int length;
-} _word;
-typedef *_word Word;
+    char end1;
+    char end2;
+    long double distance;
+    int maxLoad;
+} _link;
+typedef * _link Link;
 
 // class: request for network load
 typedef struct {
-
+    long double timeToConnect; 
+    char origin;
+    char destination;
+    long double timeToLive;
 } _request;
-typedef *_request Request;
-
-// input a string get the index of the array it is meant to be
-int getStringIndex(Word wordList[], int listLength, char* string){
-    // start w/ failure condition
-    int result = -1
-    // scroll until we find a match
-    // assumed the list has only unique entries
-    for(int x = 0; x < listLength; x++){
-        if(strcmp(wordList[x]->text, string)){
-            result = x;
-        }
-    } 
-    return result;
-}
-
+typedef * _request Request;
 
 int main (int argc, char* argv[]) {
     // Process args and store their values - 5 args
@@ -58,9 +54,7 @@ int main (int argc, char* argv[]) {
     FILE * wFile;
     wFile = fopen(workload_file, "rt");
 
-    char buffer[100];
-    // find number of lines in file
-    char * names[50];
+    char buffer[50];
 
     int nameCount = 0;
     while(EOF != fscanf(tFile, "%[^\n]\n", buffer)){
