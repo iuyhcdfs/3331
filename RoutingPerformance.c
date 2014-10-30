@@ -36,7 +36,7 @@ typedef struct packet{
     double startTime;
     double endTime;
     char packetPath[26];
-    struct packet * nextPacket;
+    struct packet * next;
 } _packet;
 typedef _packet * Packet;
 Packet newpacket(Request req);
@@ -52,7 +52,7 @@ typedef _stat * Stat;
 Stat newStat(void);
 
 // search functions
-Link getLink(char end1, char end2, Link * linkArray);
+Link getLink(char end1, char end2, Link * linkArray, int lArrayCount);
 
 // routing algorithms to update the request circuit
 void routeLLP(Request request, Link link[]);
@@ -187,10 +187,12 @@ so the following loop must be done afterwards
 
 
     // compile our queue of packets
-
+    Packet packetQueue;
     if(strcmp(network_scheme, "CIRCUIT")){
-
-
+        // focus on processing every request first
+        for(int x = 0; x < rArrayCount; x++){
+            // split our request into multiple packets.
+        }        
     }
 
     // loop through our queue of packets
@@ -265,6 +267,8 @@ so the following loop must be done afterwards
 }
 
 
+
+// get the link for two specific chars
 Link getLink(char end1, char end2, Link * linkArray, int lArrayCount){
     for(int x = 0; x < lArrayCount; x++){
         if( linkArray[x]->end1 == end1 ){
