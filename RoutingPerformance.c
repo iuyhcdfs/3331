@@ -264,8 +264,8 @@ so the following loop must be done afterwards
             // do the last packet.. it might be truncated early. it might not. cant loop this one. 
             
             Packet temp = newPacket(requestArray[x]);
-            temp->startTime = requestArray[rArrayCount-1]->timeToConnect + packetsToSend - 1;
-            temp->endTime = requestArray[rArrayCount-1]->timeToConnect + requestArray[rArrayCount-1]->timeToLive;
+            temp->startTime = requestArray[x]->timeToConnect + (packetsToSend-1)*secondsPerPacket;
+            temp->endTime = requestArray[x]->timeToConnect + requestArray[x]->timeToLive;
             temp->willDie = 0;
             if(DEBUG){
                 printf("adding last packet for this request\n");
