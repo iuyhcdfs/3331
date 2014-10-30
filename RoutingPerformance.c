@@ -8,6 +8,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*typedef struct {
+    Node first;
+} _queue;
+
+typedef _queue * Queue;*/
+
+
+
 // class: connection between two nodes
 typedef struct link{
     char end1;
@@ -49,12 +57,28 @@ typedef struct stat{
     int routedPackets;
 } _stat;
 typedef _stat * Stat;
+
+typedef struct _node {
+    Packet packet;
+    struct _node * next;
+} node;
+
+typedef struct _node * Node;
+typedef struct _node * Queue;
+
+
 Stat newStat(void);
 
 // routing algorithms to update the request circuit
 void routeLLP(Request request, Link link[]);
 void routeSHP(Request request, Link link[]);
 void routeSDP(Request request, Link link[]);
+
+// queue functions - implementing a priority queue
+Queue newQueue(void);
+Queue addToQueue(Node newNode, Queue q);
+Node popQueue(Queue q);
+Node newNode(Packet packet);
 
 // printing functions for debugging
 void printAllLinks(Link * linkArray, int linkSize);
@@ -104,7 +128,7 @@ int main (int argc, char* argv[]) {
     char * buffer2;
     // make structs for text
     tFile = fopen(topology_file, "rt");
-    while(EOF != fscanf(tFile, "%[^\n]\n", buffer)){
+    while(EOF != fscanf(tFile, "%[^\n]\n", buffer)) {
         //printf("test a %s\n",buffer);
         buffer2 = buffer;
         Link temp = newLink();
@@ -119,6 +143,7 @@ int main (int argc, char* argv[]) {
         linkArray[lArrayCount] = temp;
         lArrayCount++;
     }
+    printf("after first loop\n");
 
     wFile = fopen(workload_file, "rt");
     while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
@@ -136,6 +161,8 @@ int main (int argc, char* argv[]) {
         requestArray[rArrayCount] = temp;
         rArrayCount++;
     }
+
+    printf("not here lol\n");
 
     // print out things 
     /*
@@ -294,6 +321,41 @@ void printAllRequests(Request * requestArray, int requestSize){
             requestArray[i]->destination,
             requestArray[i]->timeToLive);
     }
+}
+
+Queue newQueue(void) {
+    return NULL;
+}
+
+Queue addToQueue(Node newNode, Queue q) {
+    if (newNode->packet->startTime < q->packet->startTime) {
+        newNode->next = q;
+        q = newNode;
+    } else {
+        Node current = q;
+        while (current->next != NULL && newNode->packet->startTime >= current->next->packet->startTime) {
+            current = current->next;
+        }    
+        newNode->next = current->next->next;
+        current->next = newNode;
+    }
+    return q;
+}
+
+Node popQueue(Queue q) {
+    Node n = NULL;
+    if (q != NULL) {
+        n = q;
+        q = q->next;
+    }
+    return n;
+}
+
+Node newNode(Packet packet) {
+    Node new = malloc(sizeof(struct _node));
+    new->packet = packet;
+    new->next = NULL;
+    return new;
 }
 
 Link newLink(void){
