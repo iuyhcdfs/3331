@@ -103,8 +103,10 @@ int main (int argc, char* argv[]) {
     int packet_rate = atoi(argv[5]);
 
     // ./RoutingPerformance CIRCUIT SHP topology.txt workload.txt 2 
-    printf("DEBUG args read: %s %s %s %s %s %d\n", argv[0], network_scheme, routing_scheme, topology_file, workload_file, packet_rate);
-
+    if(DEBUG){
+        printf("\n\n\n\n\n\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nBEGIN ROUTING PERFORMANCE\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        printf("DEBUG args read: %s %s %s %s %s %d\n", argv[0], network_scheme, routing_scheme, topology_file, workload_file, packet_rate);
+    }
     // get our files
     FILE * tFile; 
     tFile = fopen(topology_file, "rt");
@@ -121,8 +123,9 @@ int main (int argc, char* argv[]) {
     while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
         wCount++;
     }
-    printf("debug!: topology %d workload %d\n", tCount, wCount);
-
+    if(DEBUG){
+        printf("debug!: topology %d workload %d\n", tCount, wCount);
+    }
     // make arrays of structs for the files
     Link linkArray[tCount];
     int lArrayCount = 0;
@@ -147,8 +150,9 @@ int main (int argc, char* argv[]) {
         linkArray[lArrayCount] = temp;
         lArrayCount++;
     }
-    printf("loaded links\n");
-
+    if(DEBUG){
+        printf("loaded links\n");
+    }
     wFile = fopen(workload_file, "rt");
     while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
         //printf("test a %s\n",buffer);
@@ -166,8 +170,9 @@ int main (int argc, char* argv[]) {
         rArrayCount++;
     }
 
-    printf("loaded requests\n");
-
+    if(DEBUG){
+        printf("loaded requests\n");
+    }
     // print out things 
     
     //printAllLinks(linkArray, lArrayCount);
@@ -277,7 +282,9 @@ so the following loop must be done afterwards
     printAllPackets(packetQueue);
 
     // loop through our queue of packets
-
+    if(DEBUG){
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS SOME FKN ALGORITHMS\n~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    }
 
 
     // print out statistical results in standard output
