@@ -228,14 +228,25 @@ so the following loop must be done afterwards
             // take 1/packetRate = time per packet
             // then ceiling(time to live/time per packet) + 1 = packets to send
             // queue up packets per increment of time per packet from beginnin time.
+
+            // figure out number of packets to send, do all but the last one
             int packetsToSend = (requestArray[x]->timeToLive / secondsPerPacket) + 1;
+            for(int x = 1; x < packetsToSend; x++){
+                Packet temp = newPacket();
+                temp->source = requestArray[x-1];
+                temp->startTime = requestArray[x-1]->timeToConnect;
+                temp->endTime = requestArray[x-1]->timeToConnect +  
+                temp->willDie = 0;
+                packetQueue = addToQueue(newNode(temp));
+            }
+            // do the last packet.. it might be truncated early. it might not. cant loop this one. 
             Packet temp = newPacket();
-            temp->source = requestArray[x];
-            temp->startTime
-            temp->endTime
-            temp->willDie
+            temp->source = requestArray[x-1];
+            temp->startTime = requestArray[x-1]->timeToConnect;
+            temp->endTime = requestArray[x-1]->timeToConnect +  
+            temp->willDie = 0;
             packetQueue = addToQueue(newNode(temp));
-        }        
+        }
     }
 
     // loop through our queue of packets
@@ -381,6 +392,14 @@ Queue newQueue(void) {
 }
 
 Queue addToQueue(Node newNode, Queue q) {
+    double comparison;
+    if (newNode->packet->willDie == TRUE) {
+        comparison = packet->endTime;
+    } else {
+        comparison = packet->startTime;
+    }
+
+    
     if (newNode->packet->startTime < q->packet->startTime) {
         newNode->next = q;
         q = newNode;
