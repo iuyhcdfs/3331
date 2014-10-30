@@ -11,6 +11,7 @@
 
 #define TRUE 1
 #define FALSE 0
+#define DEBUG 1
 
 /*
 ==================================================================================================
@@ -215,36 +216,60 @@ so the following loop must be done afterwards
 
     // compile our queue of packets
     Queue packetQueue = newQueue();
+    //Node queueEnd = packetQueue;
     // packet rate is packets per second, change to seconds per packet
-    int secondsPerPacket = 1/packet_rate;
-    printf("we send a packet every %d seconds!\n", secondsPerPacket);
+    float secondsPerPacket =  (float)1.0/packet_rate;
+    printf("we send a packet every %f seconds!\n", secondsPerPacket);
     if(strcmp(network_scheme, "CIRCUIT")){
         // focus on processing every request first
         // for -> each request's index
+        printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);
         for(int x = 0; x < rArrayCount; x++){
+
+            if(DEBUG){
+                printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);
+            }
             // split our request into multiple packets.
             // take 1/packetRate = time per packet
             // then ceiling(time to live/time per packet) + 1 = packets to send
             // queue up packets per increment of time per packet from beginnin time.
 
             // figure out number of packets to send, do all but the last one
-            int packetsToSend = ceil((requestArray[x]->timeToLive) / secondsPerPacket) + 1;
-            for(int y = 1; y < packetsToSend; y++){
-                Packet temp = newPacket(requestArray[0]);
-                temp->source = requestArray[y-1];
-                temp->startTime = requestArray[y-1]->timeToConnect;
-                temp->endTime = requestArray[y-1]->timeToConnect + (y * secondsPerPacket); 
+            int packetsToSend = ceil((requestArray[x]->timeToLive) / secondsPerPacket);
+            
+            if(DEBUG){
+                printf("********* we are going to send %d packets\n", packetsToSend);
+            }
+
+            // make the packets for a single request
+            for(double y = 1; y < packetsToSend; y++){
+
+                if(DEBUG){
+                    printf("\n================\nY loop iteration %f\n================\n", y);
+                }
+
+                Packet temp = newPacket(requestArray[x]);
+                temp->startTime = requestArray[x]->timeToConnect + ((y-1) * secondsPerPacket);
+                temp->endTime = requestArray[x]->timeToConnect + (y * secondsPerPacket); 
                 temp->willDie = 0;
-                printf("b)\n");
+                if(DEBUG){
+                    printf("adding packet for this request\n");
+                }
                 packetQueue = addToQueue(newNode(temp), packetQueue);
-                printf("b)\n");
+            }
+
+            if(DEBUG){
+                printf("=========\nexited y loop\n=========\n");
             }
             // do the last packet.. it might be truncated early. it might not. cant loop this one. 
-            Packet temp = newPacket(requestArray[rArrayCount-1]);
-            temp->source = requestArray[rArrayCount-1];
-            temp->startTime = requestArray[rArrayCount-1]->timeToConnect;
-            temp->endTime = requestArray[rArrayCount-1]->timeToConnect + (x * secondsPerPacket);
+            
+            Packet temp = newPacket(requestArray[x]);
+            temp->startTime = requestArray[rArrayCount-1]->timeToConnect + packetsToSend - 1;
+            temp->endTime = requestArray[rArrayCount-1]->timeToConnect + requestArray[rArrayCount-1]->timeToLive;
             temp->willDie = 0;
+            if(DEBUG){
+                printf("adding last packet for this request\n");
+            }
             packetQueue = addToQueue(newNode(temp), packetQueue);
         }
     }
@@ -273,9 +298,23 @@ so the following loop must be done afterwards
 }
 
 
+
+
 /*
 ==================================================================================================
+==================================================================================================
+==================================================================================================
+==================================================================================================
+==================================================================================================
+==================================================================================================
+==================================================================================================
 FUNCTION IMPLEMENTATIONS
+==================================================================================================
+==================================================================================================
+==================================================================================================
+==================================================================================================
+==================================================================================================
+==================================================================================================
 ==================================================================================================
 */
 
@@ -362,25 +401,82 @@ Queue newQueue(void) {
     return NULL;
 }
 
-Queue addToQueue(Node newNode, Queue q) {
+Queue addToQueue(Node node, Queue q) {
     double comparison;
-    
-    if (newNode->packet->willDie == TRUE) {
-        comparison = newNode->packet->endTime;
-    } else {
-        comparison = newNode->packet->startTime;
+
+    // case for a completely empty queue
+    if(q == NULL){
+        q = newNode(node->packet);
+        if(DEBUG){
+            printf("\nadded FIRST node to queue\n");
+        }
+        return q;
     }
 
-    if (newNode->packet->startTime < q->packet->startTime) {
-        newNode->next = q;
-        q = newNode;
+    // determine if we're concerned with start/end time
+    if (node->packet->willDie == TRUE) {
+        comparison = node->packet->endTime;
     } else {
-        Node current = q;
-        while (current->next != NULL && newNode->packet->startTime >= current->next->packet->startTime) {
-            current = current->next;
-        }    
-        newNode->next = current->next->next;
-        current->next = newNode;
+        comparison = node->packet->startTime;
+    }
+
+    if(DEBUG){
+        printf("searching filled node queue\n");
+    }
+
+    Node current = q;
+    
+    // FOR EVERY COMPARISON MUST ACTUALLY USE IF STATEMENTS TO CHECK IF IT WILLDIE
+
+    // special case for for becoming earliest node
+    if(current->packet->willDie == FALSE){
+        if(comparison < current->packet->startTime){
+            node->next = current;
+            if(DEBUG){
+                printf("added FIRST node to existing queue\n");
+            }
+            return node;
+        }
+    }
+    if(current->packet->willDie == TRUE){
+        if(comparison < current->packet->endTime){
+            node->next = current;
+            if(DEBUG){
+                printf("added FIRST node to existing queue\n");
+            }
+            return node;
+        }
+    } 
+
+    // now we're looping the rest. its a bit bleh for a do while loop because we're making current become the next
+    while (current->next != NULL) {
+
+        // for all these remember the difference is comparison vs current-> NEXT
+        if(current->packet->willDie == FALSE){
+            if(comparison < current->next->packet->startTime){
+                node->next = current->next;
+                current->next = node;
+                if(DEBUG){
+                    printf("added SOME MIDDLE node to queue\n");
+                }
+                return q;
+            }
+        }
+        if(current->packet->willDie == TRUE){
+            if(comparison < current->next->packet->endTime){
+                node->next = current->next;
+                current->next = node;
+                if(DEBUG){
+                    printf("added SOME MIDDLE node to queue\n");
+                }
+                return q;
+            }
+        } 
+        current = current->next;
+    }    
+    current->next = node;
+    if(DEBUG){
+        printf("\nadded LAST node to queue\n");
     }
     return q;
 }
@@ -390,6 +486,9 @@ Node popQueue(Queue q) {
     if (q != NULL) {
         n = q;
         q = q->next;
+    }
+    if(DEBUG){
+        printf("popped a queue\n");
     }
     return n;
 }
@@ -408,6 +507,9 @@ Link newLink(void){
     temp->distance = 0;
     temp->maxLoad = 0;
     temp->currentLoad = 0;
+    if(DEBUG){
+        //printf("made a new link\n");
+    }
     return temp;
 }
 
@@ -417,6 +519,9 @@ Request newRequest(void){
     temp->origin = '0';
     temp->destination = '0';
     temp->timeToLive = 0;
+    if(DEBUG){
+        //printf("made a new request\n");
+    }
     return temp;
 }
 
@@ -426,5 +531,8 @@ Packet newPacket(Request req){
     temp->startTime = 0;
     temp->endTime = 0;
     temp->willDie = 0;
+    if(DEBUG){
+        //printf("made a new packet\n");
+    }
     return temp;
 }
