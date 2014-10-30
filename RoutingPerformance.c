@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define TRUE 1;
+#define FALSE 0;
+
 /*typedef struct {
     Node first;
 } _queue;
@@ -44,7 +47,7 @@ typedef struct packet{
     double startTime;
     double endTime;
     char packetPath[26];
-    struct packet * next;
+    int willDie;
 } _packet;
 typedef _packet * Packet;
 Packet newpacket(Request req);
@@ -58,6 +61,7 @@ typedef struct stat{
 } _stat;
 typedef _stat * Stat;
 
+// nodes
 typedef struct _node {
     Packet packet;
     struct _node * next;
@@ -214,11 +218,20 @@ so the following loop must be done afterwards
 
 
     // compile our queue of packets
-    Packet packetQueue;
+    Queue packetQueue = newQueue();
+    // packet rate is packets per second, change to seconds per packet
+    int secondsPerPacket = 1/packet_rate;
+    printf("we send a packet every %d seconds!\n", secondsPerPacket);
     if(strcmp(network_scheme, "CIRCUIT")){
         // focus on processing every request first
+        // for -> each request's index
         for(int x = 0; x < rArrayCount; x++){
             // split our request into multiple packets.
+            // take 1/packetRate = time per packet
+            // then ceiling(time to live/time per packet) + 1 = packets to send
+            // queue up packets per increment of time per packet from beginnin time.
+            int packetsToSend = (requestArray[x]->timeToLive / secondsPerPacket) + 1;
+
         }        
     }
 
@@ -419,6 +432,7 @@ Packet newpacket(Request req){
     temp->source = req;
     temp->startTime = 0;
     temp->endTime = 0;
+    temp->willDie = 0;
     return temp;
 }
 
