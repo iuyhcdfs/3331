@@ -53,16 +53,18 @@ typedef _stat * Stat;
 Stat newStat(void);
 
 // ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS
-Stat routeSHP(Request request, Link link[]){
+char * routeSHP(Request request, Link link[]){
     Stat temp = newStat();
 
     return temp;
 }
-Stat routeSDP(Request request, Link link[]) {
+
+char * routeSDP(Request request, Link link[]) {
     Stat temp = newStat();
     return temp;
 }
-Stat routeLLP(Request request, Link link[]) {
+
+char * routeLLP(Request request, Link link[]) {
     Stat temp = newStat();
     return temp;
 }
