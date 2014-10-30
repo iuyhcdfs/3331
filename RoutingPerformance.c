@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 // class: connection between two nodes
 typedef struct {
     char end1;
@@ -21,24 +20,27 @@ typedef _link * Link;
 // malloc-er
 Link newLink(void);
 
-
 // class: request for network load
 typedef struct {
     double timeToConnect; 
     char origin;
     char destination;
     double timeToLive;
+    char circuitPath[26];
 } _request;
 typedef _request * Request;
 // malloc-er
 Request newRequest(void);
 
-// struct: event to schedule a packet's transferral
+// struct: packet to schedule a packet's transferral
 typedef struct {
     Request source;
-    double eventTime;
-} _event;
-typedef _event * Event;
+    double startTime;
+    double endTime;
+    char packetPath[26];
+} _packet;
+typedef _packet * packet;
+packet newpacket(Request req);
 
 // class: stats for the result of a request
 typedef struct {
@@ -49,8 +51,6 @@ typedef struct {
 } _stat;
 typedef _stat * Stat;
 Stat newStat(void);
-
-
 
 // ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS
 Stat routeSHP(Request request, Link link[]){
@@ -233,6 +233,14 @@ Request newRequest(void){
     temp->origin = '0';
     temp->destination = '0';
     temp->timeToLive = 0;
+    return temp;
+}
+
+packet newpacket(Request req){
+    packet temp = malloc(sizeof(_packet));
+    temp->source = req;
+    temp->startTime = 0;
+    temp->endTime = 0;
     return temp;
 }
 
