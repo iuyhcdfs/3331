@@ -39,7 +39,8 @@ typedef struct {
     double endTime;
     char packetPath[26];
 } _packet;
-typedef _packet * packet;
+
+typedef _packet * Packet;
 packet newpacket(Request req);
 
 // class: stats for the result of a request
@@ -159,7 +160,12 @@ int main (int argc, char* argv[]) {
     // transmit. drop if link is full
     if(strcmp(routing_scheme, "SHP")){
         // for each request apply algorithm 
+        if (strcmp(network_scheme, "CIRCUIT")) {
+            
 
+        } else {
+            // run algo for every packet
+        }
     }
 
     // SHORTEST DELAY PATH
@@ -167,13 +173,22 @@ int main (int argc, char* argv[]) {
     //
     if(strcmp(routing_scheme, "SDP")){
         // for each request apply algorithm 
-
+        if (strcmp(network_scheme, "CIRCUIT")) {
+            // run algo once
+        } else {
+            // run algo for every packet
+        }
     }
 
     // LEAST LOADED PATH
     // Algorithm 3: dijkstra with time-variable weights
     if(strcmp(routing_scheme, "LLP")){
         // for each request apply algorithm 
+        if (strcmp(network_scheme, "CIRCUIT")) {
+            // run algo once
+        } else {
+            // run algo for every packet
+        }
 
     }
 
