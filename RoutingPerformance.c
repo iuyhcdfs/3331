@@ -9,7 +9,7 @@
 #include <string.h>
 
 // class: connection between two nodes
-typedef struct {
+typedef struct link{
     char end1;
     char end2;
     int distance;
@@ -17,11 +17,10 @@ typedef struct {
     int currentLoad;
 } _link;
 typedef _link * Link;
-// malloc-er
 Link newLink(void);
 
 // class: request for network load
-typedef struct {
+typedef struct request{
     double timeToConnect; 
     char origin;
     char destination;
@@ -29,45 +28,50 @@ typedef struct {
     char circuitPath[26];
 } _request;
 typedef _request * Request;
-// malloc-er
 Request newRequest(void);
 
 // struct: packet to schedule a packet's transferral
-typedef struct {
+typedef struct packet{
     Request source;
     double startTime;
     double endTime;
     char packetPath[26];
+    struct packet * nextPacket;
 } _packet;
-
 typedef _packet * Packet;
 Packet newpacket(Request req);
 
 // class: stats for the result of a request
-typedef struct {
+typedef struct stat{
     int hops;
     double delay;
     int blockedPackets;
     int routedPackets;
 } _stat;
 typedef _stat * Stat;
-
 Stat newStat(void);
+
+// routing algorithms to update the request circuit
 void routeLLP(Request request, Link link[]);
 void routeSHP(Request request, Link link[]);
 void routeSDP(Request request, Link link[]);
 
-// printing functions
+// printing functions for debugging
 void printAllLinks(Link * linkArray, int linkSize);
 void printAllRequests(Request * requestArray, int requestSize);
 
-// MAIN
+
+
 int main (int argc, char* argv[]) {
-    // Process args and store their values - 5 args
+    // CIRCUIT or PACKET
     char * network_scheme = argv[1];
+    // SHP or SDP or LLP
     char * routing_scheme = argv[2];
+    // filename
     char * topology_file = argv[3];
+    // filename
     char * workload_file = argv[4];
+    // int
     int packet_rate = atoi(argv[5]);
 
     // ./RoutingPerformance CIRCUIT SHP topology.txt workload.txt 2 
@@ -138,6 +142,44 @@ int main (int argc, char* argv[]) {
     printAllLinks(linkArray, lArrayCount);
     printAllRequests(requestArray, rArrayCount);
     printf("files read!s\n");
+    */
+
+
+
+    /*
+    ==================================================================================================
+    The general plan:
+
+    if -> distinguish network type {
+        loop -> to add packets to queue {
+            if -> distinguish algorithm type {
+                apply algorithm type and update route
+                have code to repeat per packet if network time is PACKET
+                function void addToQueue();
+                    add to queue must place it in the correct order
+            }
+        }
+    } 
+sooo to make the loop and iterate at same time or to do it later....
+for hop and delay it doesnt matter, it would have tried whatever any way
+
+but you want to do it seperate... you have to take care of multiple requests
+so youll HAVE to make a afterwards loop
+
+so the following loop must be done afterwards
+    loop -> iterate through queue of packets in time order {
+        if -> is LLP {
+            do some extra updating shit for the moment each packet gets routed (aka just before sending a packet, take its request and get a LLP route)
+        }
+        otherwise just do all the others
+        for each packet
+            if entire route = free
+            go update the packet "existing" on the links for its path, increment load on everything
+            if not then just skip the whole thing
+    }
+
+    get output results and print
+    ==================================================================================================
     */
 
     // SHORTEST HOP PATH
