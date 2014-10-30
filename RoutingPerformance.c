@@ -11,11 +11,13 @@
 #define TRUE 1;
 #define FALSE 0;
 
-/*typedef struct {
-    Node first;
-} _queue;
-
-typedef _queue * Queue;*/
+/*
+==================================================================================================
+CLASSES
+TYPEDEFS
+FUNCTION DECLARATIONS
+==================================================================================================
+*/
 
 // class: connection between two nodes
 typedef struct link{
@@ -64,7 +66,6 @@ typedef struct _node {
     Packet packet;
     struct _node * next;
 } node;
-
 typedef struct _node * Node;
 typedef struct _node * Queue;
 
@@ -88,7 +89,17 @@ Node newNode(Packet packet);
 // printing functions for debugging
 void printAllLinks(Link * linkArray, int linkSize);
 void printAllRequests(Request * requestArray, int requestSize);
+void printAllPackets(Queue head);
+void printAllPackets(Queue head){
+    Node temp = head;
 
+}
+
+/*
+==================================================================================================
+MAIN
+==================================================================================================
+*/
 
 
 int main (int argc, char* argv[]) {
@@ -170,11 +181,11 @@ int main (int argc, char* argv[]) {
     printf("not here lol\n");
 
     // print out things 
-    /*
-    printAllLinks(linkArray, lArrayCount);
-    printAllRequests(requestArray, rArrayCount);
-    printf("files read!s\n");
-    */
+    
+    //printAllLinks(linkArray, lArrayCount);
+    //printAllRequests(requestArray, rArrayCount);
+    //printf("files read!s\n");
+    
 
 
 
@@ -210,7 +221,7 @@ so the following loop must be done afterwards
             if not then just skip the whole thing
     }
 
-    get output results and print
+    get output results and print    
     ==================================================================================================
     */
 
@@ -246,65 +257,17 @@ so the following loop must be done afterwards
             temp->endTime = requestArray[x-1]->timeToConnect +  
             temp->willDie = 0;
             packetQueue = addToQueue(newNode(temp));
+            
         }
     }
+    // debug printing
+    printAllPackets(packetQueue);
 
     // loop through our queue of packets
 
 
-/*
-    // SHORTEST HOP PATH
-    // Algorithm 1: basic dijkstra
-    // find routes for packets
-    // transmit. drop if link is full
-    int j;
-    if(strcmp(routing_scheme, "SHP")){
-        // for each request apply algorithm 
-        if (strcmp(network_scheme, "CIRCUIT")) {
-            // Needs to set each packet path to circuit path             
-            for (j=0; j < rArrayCount; j++) {
-                routeSHP(requestArray[j], linkArray);
-            }
-            
-        } else {
-            // run algo for every packet
-            
-        }
-    }
 
-    // SHORTEST DELAY PATH
-    // Algorithm 2: dijkstra with weights
-    //
-    if(strcmp(routing_scheme, "SDP")){
-        // for each request apply algorithm 
-        if (strcmp(network_scheme, "CIRCUIT")) {
-            // run algo once
-            for (j=0; j < rArrayCount; j++) {
-                routeSDP(requestArray[j], linkArray);
-            } 
- 
-        } else {
-            // run algo for every packet
-        }
-    }
-
-    // LEAST LOADED PATH
-    // Algorithm 3: dijkstra with time-variable weights
-    if(strcmp(routing_scheme, "LLP")){
-        // for each request apply algorithm 
-        if (strcmp(network_scheme, "CIRCUIT")) {
-            // run algo once
-            for (j=0; j < rArrayCount; j++) {
-                routeLLP(requestArray[j], linkArray);
-            }  
-        } else {
-            // run algo for every packet
-        }
-
-    }
-*/
-
-    // print out specific results in standard output
+    // print out statistical results in standard output
    /*
     printf("total number of virtual circuit requests: %d\n",  );
     printf("total number of packets: %d\n",                   );
@@ -314,12 +277,19 @@ so the following loop must be done afterwards
     percentage of blocked packets: 20.37
     average number of hops per circuit: 5.42
     average cumulative propagation delay per circuit: 120.54
-*/
+    */
+
 
 
     return EXIT_SUCCESS;
 }
 
+
+/*
+==================================================================================================
+FUNCTION IMPLEMENTATIONS
+==================================================================================================
+*/
 
 
 // get the link for two specific chars
@@ -359,10 +329,6 @@ void routeLLP(Request request, Link link[]) {
     return;
 }
 
-
-
-// Function implementation
-
 void printAllLinks(Link * linkArray, int linkSize) {
     int i;
     for (i=0; i < linkSize; i++) {
@@ -399,7 +365,7 @@ Queue addToQueue(Node newNode, Queue q) {
         comparison = packet->startTime;
     }
 
-    
+
     if (newNode->packet->startTime < q->packet->startTime) {
         newNode->next = q;
         q = newNode;
