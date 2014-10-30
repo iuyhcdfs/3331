@@ -7,9 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
-#define TRUE 1;
-#define FALSE 0;
+#define TRUE 1
+#define FALSE 0
 
 /*
 ==================================================================================================
@@ -50,16 +51,7 @@ typedef struct packet{
     int willDie;
 } _packet;
 typedef _packet * Packet;
-Packet newpacket(Request req);
-
-// class: stats for the result of a request
-typedef struct stat{
-    int hops;
-    double delay;
-    int blockedPackets;
-    int routedPackets;
-} _stat;
-typedef _stat * Stat;
+Packet newPacket(Request req);
 
 // nodes
 typedef struct _node {
@@ -69,8 +61,6 @@ typedef struct _node {
 typedef struct _node * Node;
 typedef struct _node * Queue;
 
-
-Stat newStat(void);
 
 // search functions
 Link getLink(char end1, char end2, Link * linkArray, int lArrayCount);
@@ -90,10 +80,7 @@ Node newNode(Packet packet);
 void printAllLinks(Link * linkArray, int linkSize);
 void printAllRequests(Request * requestArray, int requestSize);
 void printAllPackets(Queue head);
-void printAllPackets(Queue head){
-    Node temp = head;
 
-}
 
 /*
 ==================================================================================================
@@ -159,7 +146,7 @@ int main (int argc, char* argv[]) {
         linkArray[lArrayCount] = temp;
         lArrayCount++;
     }
-    printf("after first loop\n");
+    printf("loaded links\n");
 
     wFile = fopen(workload_file, "rt");
     while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
@@ -178,7 +165,7 @@ int main (int argc, char* argv[]) {
         rArrayCount++;
     }
 
-    printf("not here lol\n");
+    printf("loaded requests\n");
 
     // print out things 
     
@@ -227,7 +214,7 @@ so the following loop must be done afterwards
 
 
     // compile our queue of packets
-    Queue packetQueue;
+    Queue packetQueue = newQueue();
     // packet rate is packets per second, change to seconds per packet
     int secondsPerPacket = 1/packet_rate;
     printf("we send a packet every %d seconds!\n", secondsPerPacket);
@@ -241,23 +228,24 @@ so the following loop must be done afterwards
             // queue up packets per increment of time per packet from beginnin time.
 
             // figure out number of packets to send, do all but the last one
-            int packetsToSend = (requestArray[x]->timeToLive / secondsPerPacket) + 1;
-            for(int x = 1; x < packetsToSend; x++){
-                Packet temp = newPacket();
-                temp->source = requestArray[x-1];
-                temp->startTime = requestArray[x-1]->timeToConnect;
-                temp->endTime = requestArray[x-1]->timeToConnect +  
+            int packetsToSend = ceil((requestArray[x]->timeToLive) / secondsPerPacket) + 1;
+            for(int y = 1; y < packetsToSend; y++){
+                Packet temp = newPacket(requestArray[0]);
+                temp->source = requestArray[y-1];
+                temp->startTime = requestArray[y-1]->timeToConnect;
+                temp->endTime = requestArray[y-1]->timeToConnect + (y * secondsPerPacket); 
                 temp->willDie = 0;
-                packetQueue = addToQueue(newNode(temp));
+                printf("b)\n");
+                packetQueue = addToQueue(newNode(temp), packetQueue);
+                printf("b)\n");
             }
             // do the last packet.. it might be truncated early. it might not. cant loop this one. 
-            Packet temp = newPacket();
-            temp->source = requestArray[x-1];
-            temp->startTime = requestArray[x-1]->timeToConnect;
-            temp->endTime = requestArray[x-1]->timeToConnect +  
+            Packet temp = newPacket(requestArray[rArrayCount-1]);
+            temp->source = requestArray[rArrayCount-1];
+            temp->startTime = requestArray[rArrayCount-1]->timeToConnect;
+            temp->endTime = requestArray[rArrayCount-1]->timeToConnect + (x * secondsPerPacket);
             temp->willDie = 0;
-            packetQueue = addToQueue(newNode(temp));
-            
+            packetQueue = addToQueue(newNode(temp), packetQueue);
         }
     }
     // debug printing
@@ -329,6 +317,23 @@ void routeLLP(Request request, Link link[]) {
     return;
 }
 
+void printAllPackets(Queue head){
+    Node temp = head;
+    while(temp->next != NULL){
+        printf("Packet\nFrom %c to %c\nStarts %f\nEnds %f\n\n",
+            temp->packet->source->origin,
+            temp->packet->source->destination,
+            temp->packet->startTime,
+            temp->packet->endTime);
+        temp = temp->next;
+    }
+    printf("Packet\nFrom %c to %c\nStarts %f\nEnds %f\n\n",
+        temp->packet->source->origin,
+        temp->packet->source->destination,
+        temp->packet->startTime,
+        temp->packet->endTime);
+}
+
 void printAllLinks(Link * linkArray, int linkSize) {
     int i;
     for (i=0; i < linkSize; i++) {
@@ -359,12 +364,12 @@ Queue newQueue(void) {
 
 Queue addToQueue(Node newNode, Queue q) {
     double comparison;
+    
     if (newNode->packet->willDie == TRUE) {
-        comparison = packet->endTime;
+        comparison = newNode->packet->endTime;
     } else {
-        comparison = packet->startTime;
+        comparison = newNode->packet->startTime;
     }
-
 
     if (newNode->packet->startTime < q->packet->startTime) {
         newNode->next = q;
@@ -415,20 +420,11 @@ Request newRequest(void){
     return temp;
 }
 
-Packet newpacket(Request req){
+Packet newPacket(Request req){
     Packet temp = malloc(sizeof(_packet));
     temp->source = req;
     temp->startTime = 0;
     temp->endTime = 0;
     temp->willDie = 0;
-    return temp;
-}
-
-Stat newStat(void){
-    Stat temp = malloc(sizeof(_stat));
-    temp->hops = 0;
-    temp->delay = 0;
-    temp->blockedPackets = 0;
-    temp->routedPackets = 0;
     return temp;
 }
