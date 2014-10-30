@@ -51,25 +51,11 @@ typedef struct {
     int routedPackets;
 } _stat;
 typedef _stat * Stat;
+
 Stat newStat(void);
-
-// ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS
-char * routeSHP(Request request, Link link[]){
-    //Stat temp = newStat();
-
-    return NULL;
-}
-
-char * routeSDP(Request request, Link link[]) {
-    //Stat temp = newStat();
-    return NULL;
-}
-
-char * routeLLP(Request request, Link link[]) {
-    //Stat temp = newStat();
-    return NULL;
-}
-
+void routeLLP(Request request, Link link[]);
+void routeSHP(Request request, Link link[]);
+void routeSDP(Request request, Link link[]);
 
 // printing functions
 void printAllLinks(Link * linkArray, int linkSize);
@@ -158,10 +144,14 @@ int main (int argc, char* argv[]) {
     // Algorithm 1: basic dijkstra
     // find routes for packets
     // transmit. drop if link is full
+    int j;
     if(strcmp(routing_scheme, "SHP")){
         // for each request apply algorithm 
         if (strcmp(network_scheme, "CIRCUIT")) {
-            
+            // Needs to set each packet path to circuit path             
+            for (j=0; j < rArrayCount; j++) {
+                routeSHP(requestArray[j], linkArray);
+            }
             
         } else {
             // run algo for every packet
@@ -176,6 +166,10 @@ int main (int argc, char* argv[]) {
         // for each request apply algorithm 
         if (strcmp(network_scheme, "CIRCUIT")) {
             // run algo once
+            for (j=0; j < rArrayCount; j++) {
+                routeSDP(requestArray[j], linkArray);
+            } 
+ 
         } else {
             // run algo for every packet
         }
@@ -187,6 +181,9 @@ int main (int argc, char* argv[]) {
         // for each request apply algorithm 
         if (strcmp(network_scheme, "CIRCUIT")) {
             // run algo once
+            for (j=0; j < rArrayCount; j++) {
+                routeLLP(requestArray[j], linkArray);
+            }  
         } else {
             // run algo for every packet
         }
@@ -207,6 +204,26 @@ int main (int argc, char* argv[]) {
 
 
     return EXIT_SUCCESS;
+}
+
+// ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS, NULL if path invalid
+void routeSHP(Request request, Link link[]) {
+    //Stat temp = newStat();
+    
+    
+    return;
+}
+
+void routeSDP(Request request, Link link[]) {
+    //Stat temp = newStat();
+
+    return;
+}
+
+void routeLLP(Request request, Link link[]) {
+    //Stat temp = newStat();
+
+    return;
 }
 
 
