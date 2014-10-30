@@ -17,8 +17,6 @@
 
 typedef _queue * Queue;*/
 
-
-
 // class: connection between two nodes
 typedef struct link{
     char end1;
@@ -218,7 +216,7 @@ so the following loop must be done afterwards
 
 
     // compile our queue of packets
-    Queue packetQueue = newQueue();
+    Queue packetQueue;
     // packet rate is packets per second, change to seconds per packet
     int secondsPerPacket = 1/packet_rate;
     printf("we send a packet every %d seconds!\n", secondsPerPacket);
@@ -231,7 +229,12 @@ so the following loop must be done afterwards
             // then ceiling(time to live/time per packet) + 1 = packets to send
             // queue up packets per increment of time per packet from beginnin time.
             int packetsToSend = (requestArray[x]->timeToLive / secondsPerPacket) + 1;
-
+            Packet temp = newPacket();
+            temp->source = requestArray[x];
+            temp->startTime
+            temp->endTime
+            temp->willDie
+            packetQueue = addToQueue(newNode(temp));
         }        
     }
 
