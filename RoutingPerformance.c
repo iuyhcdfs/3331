@@ -41,7 +41,7 @@ typedef struct {
 } _packet;
 
 typedef _packet * Packet;
-packet newpacket(Request req);
+Packet newpacket(Request req);
 
 // class: stats for the result of a request
 typedef struct {
@@ -55,19 +55,19 @@ Stat newStat(void);
 
 // ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS
 char * routeSHP(Request request, Link link[]){
-    Stat temp = newStat();
+    //Stat temp = newStat();
 
-    return temp;
+    return NULL;
 }
 
 char * routeSDP(Request request, Link link[]) {
-    Stat temp = newStat();
-    return temp;
+    //Stat temp = newStat();
+    return NULL;
 }
 
 char * routeLLP(Request request, Link link[]) {
-    Stat temp = newStat();
-    return temp;
+    //Stat temp = newStat();
+    return NULL;
 }
 
 
@@ -162,9 +162,10 @@ int main (int argc, char* argv[]) {
         // for each request apply algorithm 
         if (strcmp(network_scheme, "CIRCUIT")) {
             
-
+            
         } else {
             // run algo for every packet
+            
         }
     }
 
@@ -213,7 +214,8 @@ int main (int argc, char* argv[]) {
 // Function implementation
 
 void printAllLinks(Link * linkArray, int linkSize) {
-    for (int i=0; i < linkSize; i++) {
+    int i;
+    for (i=0; i < linkSize; i++) {
         printf("\nLink %d: \n", i);
         printf("End1:    %c\nEnd2:    %c\nDistance:%d\nmaxLoad :%d\n\n",
             linkArray[i]->end1,
@@ -224,7 +226,8 @@ void printAllLinks(Link * linkArray, int linkSize) {
 }
 
 void printAllRequests(Request * requestArray, int requestSize){
-    for (int i=0; i < requestSize; i++) {
+    int i;
+    for (i=0; i < requestSize; i++) {
         printf("\nRequest %d: \n", i);
         printf("TTC:     %f\nOrigin:  %c\nDest:    %c\nTTL:     %f\n\n",
             requestArray[i]->timeToConnect,
@@ -253,8 +256,8 @@ Request newRequest(void){
     return temp;
 }
 
-packet newpacket(Request req){
-    packet temp = malloc(sizeof(_packet));
+Packet newpacket(Request req){
+    Packet temp = malloc(sizeof(_packet));
     temp->source = req;
     temp->startTime = 0;
     temp->endTime = 0;
@@ -267,4 +270,5 @@ Stat newStat(void){
     temp->delay = 0;
     temp->blockedPackets = 0;
     temp->routedPackets = 0;
+    return temp;
 }
