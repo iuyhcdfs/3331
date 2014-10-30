@@ -51,6 +51,9 @@ typedef struct stat{
 typedef _stat * Stat;
 Stat newStat(void);
 
+// search functions
+Link getLink(char end1, char end2, Link * linkArray);
+
 // routing algorithms to update the request circuit
 void routeLLP(Request request, Link link[]);
 void routeSHP(Request request, Link link[]);
@@ -182,6 +185,18 @@ so the following loop must be done afterwards
     ==================================================================================================
     */
 
+
+    // compile our queue of packets
+
+    if(strcmp(network_scheme, "CIRCUIT")){
+
+
+    }
+
+    // loop through our queue of packets
+
+
+/*
     // SHORTEST HOP PATH
     // Algorithm 1: basic dijkstra
     // find routes for packets
@@ -231,6 +246,7 @@ so the following loop must be done afterwards
         }
 
     }
+*/
 
     // print out specific results in standard output
    /*
@@ -248,11 +264,28 @@ so the following loop must be done afterwards
     return EXIT_SUCCESS;
 }
 
+
+Link getLink(char end1, char end2, Link * linkArray, int lArrayCount){
+    for(int x = 0; x < lArrayCount; x++){
+        if( linkArray[x]->end1 == end1 ){
+            if( linkArray[x]->end2 == end2 ){
+                return linkArray[x];
+            }
+        }
+        if( linkArray[x]->end1 == end2 ){
+            if( linkArray[x]->end2 == end1 ){
+                return linkArray[x];
+            }
+        }
+    }
+    return NULL;
+}
+
 // ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS, NULL if path invalid
 void routeSHP(Request request, Link link[]) {
     //Stat temp = newStat();
-    
-    
+
+
     return;
 }
 
