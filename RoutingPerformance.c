@@ -174,11 +174,11 @@ int main (int argc, char* argv[]) {
         printf("loaded requests\n");
     }
     // print out things 
-    
-    //printAllLinks(linkArray, lArrayCount);
-    //printAllRequests(requestArray, rArrayCount);
-    //printf("files read!s\n");
-    
+    if(DEBUG){
+        printAllLinks(linkArray, lArrayCount);
+        printAllRequests(requestArray, rArrayCount);
+        printf("files read! time to add things to the queue\n");
+    }
 
 
 
@@ -221,7 +221,6 @@ so the following loop must be done afterwards
 
     // compile our queue of packets
     Queue packetQueue = newQueue();
-    //Node queueEnd = packetQueue;
     // packet rate is packets per second, change to seconds per packet
     float secondsPerPacket =  (float)1.0/packet_rate;
     printf("we send a packet every %f seconds!\n", secondsPerPacket);
@@ -279,11 +278,12 @@ so the following loop must be done afterwards
         }
     }
     // debug printing
-    printAllPackets(packetQueue);
-
+    if(DEBUG){
+        printAllPackets(packetQueue);
+    }
     // loop through our queue of packets
     if(DEBUG){
-        printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS SOME FKN ALGORITHMS\n~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS THE GODDAMN QUEUE\n~~~~~~~~~~~~~~~~~~~~~~~~\n");
     }
 
 
