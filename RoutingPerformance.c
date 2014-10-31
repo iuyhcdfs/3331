@@ -62,6 +62,7 @@ typedef struct packet{
     double endTime;
     char * packetPath;
     int willDie;
+    struct packet * startPacket;
 } _packet;
 typedef _packet * Packet;
 Packet newPacket(Request req);
@@ -214,7 +215,6 @@ int main (int argc, char* argv[]) {
     }
 
 
-
     /*
     ==================================================================================================
     Things to do:
@@ -272,6 +272,8 @@ so the following loop must be done afterwards
         // for -> each request's index
 
     printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);
+    
+
     for(int x = 0; x < rArrayCount; x++){
 
         if(DEBUG){
@@ -292,6 +294,9 @@ so the following loop must be done afterwards
             printf("********* we are going to send %d packets\n", packetsToSend);
         }
 
+        // if its the first packet
+        int firstPacket = TRUE;
+
         // make the packets for a single request
         for(double y = 1; y < packetsToSend; y++){
 
@@ -307,17 +312,36 @@ so the following loop must be done afterwards
                 printf("adding packet for this request\n");
             }
 
-            // route per network and algorithm.
-            if(strcmp(routing_scheme, "SHP")){
-                routeSHP(temp, linkArray, lArrayCount);
+            // special: if we are circuit, each request is on the same circuit! figure out the route NOW.
+            if(strcmp(network_scheme, "CIRCUIT")){
+                if(firstPacket == TRUE){
+                    if(strcmp(routing_scheme, "SDP")){
+                        requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
+                    }
+                    if(strcmp(routing_scheme, "SHP")){
+                        requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
+                    }
+                    // also we have to note for LLP that the first packet is the first here...
+                    // all packets will now have pointers to the first packet
+                    
+                    firstPacket = FALSE;
+                }
             }
-            if(strcmp(routing_scheme, "SDP")){
-                routeSDP(temp, linkArray, lArrayCount);
+            // special: if we are circuit, each request is on the same circuit! figure out the route NOW.
+            if(strcmp(network_scheme, "PACKET")){
+                if(strcmp(routing_scheme, "SDP")){
+                    requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
+                }
+                if(strcmp(routing_scheme, "SHP")){
+                    requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
+                }
+
             }
+
 
             // LLP does nothing! do this later when we know how paths are loaded
             
-               
+
 
             packetQueue = addToQueue(newNode(temp), packetQueue);
         }
@@ -362,19 +386,35 @@ so the following loop must be done afterwards
 
     // print out statistical results in standard output
 
-    printf("total number of virtual circuit requests: %d\n", rArrayCount);
-    printf("total number of packets: %d\n", totalPackets);
-    printf("number of successfully routed packets: %d\n", packetSuccessCounter);
-    printf("percentage of successfully routed packets: %5.2f\n", ((float)packetSuccessCounter/(float)totalPackets) * 100);
+        printf("total number of virtual circuit requests: %d\n", rArrayCount);
+        printf("total number of packets: %d\n", totalPackets);
+        printf("number of successfully routed packets: %d\n", packetSuccessCounter);
+        printf("percentage of successfully routed packets: %5.2f\n", ((float)packetSuccessCounter/(float)totalPackets) * 100);
     //printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
     //printf("percentage of blocked packets: %.2f\n", ( (((float)totalPackets - (float)packetSuccessCounter)/(float)totalPackets) * 100);
     //printf("average number of hops per circuit: %.2f\n", );
     //printf("average cumulative propagation delay per circuit: %.2f\n", );
 
 
+// print out adjacency matrix.
+    if(DEBUG){
+        printf("  ");
+        for(int y = 0; y < 26; y++){
+            printf("%c ", y+ASCII);
+        }
+        printf("\n");
+        for(int x = 0; x < 26; x++){
+            printf("%c ", x+ASCII);
+            for(int y = 0; y < 26; y++){
+                printf("%d ", adjMatrix[x][y]);
+            }
+            printf("\n");
+        }
+    }
 
-    return EXIT_SUCCESS;
-}
+
+        return EXIT_SUCCESS;
+    }
 
 
 
