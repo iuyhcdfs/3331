@@ -13,12 +13,17 @@
 #define FALSE 0
 // do you want debug prints?
 #define DEBUG 1
+// displacement of capital ASCII letters
+#define ASCII 65
 
 // lets set up all our statistics..
 int totalPackets = 0;
 int packetSuccessCounter = 0;
 float averageHops = 0;
 float averageDelay = 0;
+
+// global adjacency matrix oh yes
+int adjMatrix[26][26];
 
 /*
 ==================================================================================================
@@ -45,7 +50,7 @@ typedef struct request{
     char origin;
     char destination;
     double timeToLive;
-    char circuitPath[27];
+    char * circuitPath;
 } _request;
 typedef _request * Request;
 Request newRequest(void);
@@ -55,7 +60,7 @@ typedef struct packet{
     Request source;
     double startTime;
     double endTime;
-    char packetPath[27];
+    char * packetPath;
     int willDie;
 } _packet;
 typedef _packet * Packet;
@@ -69,14 +74,13 @@ typedef struct _node {
 typedef struct _node * Node;
 typedef struct _node * Queue;
 
-
 // search functions
 Link getLink(char end1, char end2, Link * linkArray, int lArrayCount);
 
 // routing algorithms to update the request circuit
-void routeSHP(Packet packet, Link link[]);
-void routeSDP(Packet packet, Link link[]);
-void routeLLP(Packet packet, Link link[]);
+char * routeSHP(Packet packet, Link link[], int lArraySize);
+char * routeSDP(Packet packet, Link link[], int lArraySize);
+char * routeLLP(Packet packet, Link link[], int lArraySize);
 
 // queue functions - implementing a priority queue
 Queue newQueue(void);
@@ -98,6 +102,12 @@ MAIN
 
 
 int main (int argc, char* argv[]) {
+    // set whole matrix to zero
+    for(int x = 0; x < 26; x++){
+        for(int y = 0; y < 26; y++){
+            adjMatrix[x][y] = 0;
+        }
+    }
     // CIRCUIT or PACKET
     char * network_scheme = argv[1];
     // SHP or SDP or LLP
@@ -139,27 +149,43 @@ int main (int argc, char* argv[]) {
     Request requestArray[wCount];
     int rArrayCount = 0;
 
+    // setup our network!
     char * buffer2;
     // make structs for text
     tFile = fopen(topology_file, "rt");
     while(EOF != fscanf(tFile, "%[^\n]\n", buffer)) {
         //printf("test a %s\n",buffer);
+        int adj1;
+        int adj2;
+
         buffer2 = buffer;
         Link temp = newLink();
         buffer2 = strtok(buffer2, " ");
         temp->end1 = buffer2[0];
+
+        adj1 = buffer2[0] - ASCII;
+
         buffer2 = strtok(NULL, " ");
         temp->end2 = buffer2[0];
+
+        adj2 = buffer2[0] - ASCII;
+
         buffer2 = strtok(NULL, " ");
         temp->distance = atoi(buffer2);
         buffer2 = strtok(NULL, " ");
         temp->maxLoad = atoi(buffer2);
         linkArray[lArrayCount] = temp;
+
+        adjMatrix[adj1][adj2] = TRUE;
+        adjMatrix[adj2][adj1] = TRUE;
+
         lArrayCount++;
     }
     if(DEBUG){
         printf("loaded links\n");
     }
+
+    // setup our requests!
     wFile = fopen(workload_file, "rt");
     while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
         //printf("test a %s\n",buffer);
@@ -283,15 +309,15 @@ so the following loop must be done afterwards
 
             // route per network and algorithm.
             if(strcmp(routing_scheme, "SHP")){
-                routeSHP(temp, linkArray);
+                routeSHP(temp, linkArray, lArrayCount);
             }
             if(strcmp(routing_scheme, "SDP")){
-                routeSDP(temp, linkArray);
+                routeSDP(temp, linkArray, lArrayCount);
             }
 
             // LLP does nothing! do this later when we know how paths are loaded
             
-            
+               
 
             packetQueue = addToQueue(newNode(temp), packetQueue);
         }
@@ -340,11 +366,10 @@ so the following loop must be done afterwards
     printf("total number of packets: %d\n", totalPackets);
     printf("number of successfully routed packets: %d\n", packetSuccessCounter);
     printf("percentage of successfully routed packets: %5.2f\n", ((float)packetSuccessCounter/(float)totalPackets) * 100);
-        //printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
-        //printf("percentage of blocked packets: %.2f\n", ( (((float)totalPackets - (float)packetSuccessCounter)/(float)totalPackets) * 100);
-        //printf("average number of hops per circuit: %.2f\n", );
-        //printf("average cumulative propagation delay per circuit: %.2f\n", );
-
+    //printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
+    //printf("percentage of blocked packets: %.2f\n", ( (((float)totalPackets - (float)packetSuccessCounter)/(float)totalPackets) * 100);
+    //printf("average number of hops per circuit: %.2f\n", );
+    //printf("average cumulative propagation delay per circuit: %.2f\n", );
 
 
 
@@ -373,34 +398,7 @@ FUNCTION IMPLEMENTATIONS
 */
 
 
-// get the link for two specific chars
-Link getLink(char end1, char end2, Link * linkArray, int lArrayCount){
-    for(int x = 0; x < lArrayCount; x++){
-        if( linkArray[x]->end1 == end1 ){
-            if( linkArray[x]->end2 == end2 ){
-                return linkArray[x];
-            }
-        }
-        if( linkArray[x]->end1 == end2 ){
-            if( linkArray[x]->end2 == end1 ){
-                return linkArray[x];
-            }
-        }
-    }
-    return NULL;
-}
 
-// ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS, NULL if path invalid
-
-void routeSHP(Packet packet, Link link[]){
-
-}
-void routeSDP(Packet packet, Link link[]){
-
-}
-void routeLLP(Packet packet, Link link[]){
-
-}
 
 void printAllPackets(Queue head){
     Node temp = head;
@@ -581,4 +579,37 @@ Packet newPacket(Request req){
         //printf("made a new packet\n");
     }
     return temp;
+}
+
+
+// get the link for two specific chars
+Link getLink(char end1, char end2, Link * linkArray, int lArrayCount){
+    for(int x = 0; x < lArrayCount; x++){
+        if( linkArray[x]->end1 == end1 ){
+            if( linkArray[x]->end2 == end2 ){
+                return linkArray[x];
+            }
+        }
+        if( linkArray[x]->end1 == end2 ){
+            if( linkArray[x]->end2 == end1 ){
+                return linkArray[x];
+            }
+        }
+    }
+    return NULL;
+}
+
+
+// ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS, NULL if path invalid
+    // have packet, have link, have size of link array
+    // dont edit packets, just return the char* for it with a null terminator.
+
+char * routeSHP(Packet packet, Link link[], int lArraySize){
+    return NULL;
+}
+char * routeSDP(Packet packet, Link link[], int lArraySize){
+    return NULL;
+}
+char * routeLLP(Packet packet, Link link[], int lArraySize){
+    return NULL;
 }
