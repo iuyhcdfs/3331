@@ -51,7 +51,7 @@ typedef struct request{
     char origin;
     char destination;
     double timeToLive;
-    char * circuitPath;
+    int * circuitPath;
 } _request;
 typedef _request * Request;
 Request newRequest(void);
@@ -61,7 +61,7 @@ typedef struct packet{
     Request source;
     double startTime;
     double endTime;
-    char * packetPath;
+    int * packetPath;
     int willDie;
     int first;
 } _packet;
@@ -82,9 +82,9 @@ typedef struct _node * Queue;
 
 
 // routing algorithms to update the request circuit
-char * routeSHP(Packet packet, Link link[], int lArraySize);
-char * routeSDP(Packet packet, Link link[], int lArraySize);
-char * routeLLP(Packet packet, Link link[], int lArraySize);
+int * routeSHP(Packet packet, Link link[], int lArraySize);
+int * routeSDP(Packet packet, Link link[], int lArraySize);
+int * routeLLP(Packet packet, Link link[], int lArraySize);
 
 // queue functions - implementing a priority queue
 Queue newQueue(void);
@@ -124,10 +124,9 @@ int main (int argc, char* argv[]) {
     int packet_rate = atoi(argv[5]);
 
     // ./RoutingPerformance CIRCUIT SHP topology.txt workload.txt 2 
-    if(DEBUG){
-        printf("\n\n\n\n\n\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nBEGIN ROUTING PERFORMANCE\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-        printf("DEBUG args read: %s %s %s %s %s %d\n", argv[0], network_scheme, routing_scheme, topology_file, workload_file, packet_rate);
-    }
+    if(DEBUG){printf("\n\n\n\n\n\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nBEGIN ROUTING PERFORMANCE\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("DEBUG args read: %s %s %s %s %s %d\n", argv[0], network_scheme, routing_scheme, topology_file, workload_file, packet_rate);}
+
     // get our files
     FILE * tFile; 
     tFile = fopen(topology_file, "rt");
@@ -144,9 +143,8 @@ int main (int argc, char* argv[]) {
     while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
         wCount++;
     }
-    if(DEBUG){
-        printf("debug!: topology %d workload %d\n", tCount, wCount);
-    }
+    if(DEBUG){printf("debug!: topology %d workload %d\n", tCount, wCount);}
+
     // make arrays of structs for the files
     Link linkArray[tCount];
     int lArrayCount = 0;
@@ -185,9 +183,7 @@ int main (int argc, char* argv[]) {
 
         lArrayCount++;
     }
-    if(DEBUG){
-        printf("loaded links\n");
-    }
+    if(DEBUG){printf("loaded links\n");}
 
     // setup our requests!
     wFile = fopen(workload_file, "rt");
@@ -207,16 +203,11 @@ int main (int argc, char* argv[]) {
         rArrayCount++;
     }
 
-    if(DEBUG){
-        printf("loaded requests\n");
-    }
+    if(DEBUG){printf("loaded requests\n");}
     // print out things 
-    if(DEBUG){
-        printAllLinks(linkArray, lArrayCount);
-        printAllRequests(requestArray, rArrayCount);
-        printf("files read! time to add things to the queue\n");
-    }
-
+    if(DEBUG){printAllLinks(linkArray, lArrayCount);}
+    if(DEBUG){printAllRequests(requestArray, rArrayCount);}
+    if(DEBUG){printf("files read! time to add things to the queue\n");}
 
     // print out adjacency matrix.
     if(DEBUG){
@@ -296,9 +287,7 @@ for packet
     */
     for(x = 0; x < rArrayCount; x++){
 
-        if(DEBUG){
-            printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);
-        }
+        if(DEBUG){printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);}
         // split our request into multiple packets.
         // take 1/packetRate = time per packet
         // then ceiling(time to live/time per packet) + 1 = packets to send
@@ -309,10 +298,7 @@ for packet
         // add to total amount of packets
         totalPackets += packetsToSend;
 
-
-        if(DEBUG){
-            printf("********* we are going to send %d packets\n", packetsToSend);
-        }
+        if(DEBUG){printf("********* we are going to send %d packets\n", packetsToSend);}
 
         // WE ARE AT THE BEGINNING OF A NEW LOOP SO WE MUST SET THE FIRST PACKET TO TRUE
         int firstPacket = TRUE;
@@ -320,21 +306,21 @@ for packet
         // make the packets for a single request
         for(y = 1; y < packetsToSend; y++){
 
-            if(DEBUG){
-                printf("\n================\nY loop iteration %d\n================\n", y);
-            }
+            if(DEBUG){printf("\n================\nY loop iteration %d\n================\n", y);}
 
             Packet temp = newPacket(requestArray[x]);
             temp->startTime = requestArray[x]->timeToConnect + (((float)y-1) * secondsPerPacket);
             temp->endTime = requestArray[x]->timeToConnect + ((float)y * secondsPerPacket); 
             temp->willDie = 0;
-            if(DEBUG){
-                printf("adding packet for this request\n");
-            }
+
+            if(DEBUG){printf("ROUTING SDP OR SHP, and adding packet for this request\n");}
 
             // special: if we are circuit, each request is on the same circuit! figure out the route NOW.
             if(strcmp(network_scheme, "CIRCUIT")){
                 if(firstPacket == TRUE){
+
+                    if(DEBUG){printf("first packet! leaving trigger for circuit LLP\n");}
+
                     if(strcmp(routing_scheme, "SDP")){
                         requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
                     }
@@ -359,66 +345,82 @@ for packet
                 }
                 // youll just route LLP every time mindlessly in phase 2.
             }
-
             // LLP does nothing! do this later when we know how paths are loaded
-            
 
-
+            // then add the things to the queue
             packetQueue = addToQueue(newNode(temp), packetQueue);
         }
 
-        if(DEBUG){
-            printf("=========\nexited y loop\n=========\n");
-        }
+        if(DEBUG){printf("=========\nexited y loop\n=========\n");}
+
         // do the last packet.. it might be truncated early. it might not. cant loop this one. 
 
         Packet temp = newPacket(requestArray[x]);
         temp->startTime = requestArray[x]->timeToConnect + (packetsToSend-1)*secondsPerPacket;
         temp->endTime = requestArray[x]->timeToConnect + requestArray[x]->timeToLive;
         temp->willDie = 0;
-        if(DEBUG){
-            printf("adding last packet for this request\n");
-        }
+        
+        if(DEBUG){printf("adding last packet for this request\n");}
         packetQueue = addToQueue(newNode(temp), packetQueue);
     }
     
     // debug printing
-    if(DEBUG){
-        printAllPackets(packetQueue);
-    }
+    if(DEBUG){printAllPackets(packetQueue);}
     // loop through our queue of packets
-    if(DEBUG){
-        printf("%d\n", totalPackets);
-        printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS THE GODDAMN QUEUE\n~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    if(DEBUG){printf("%d\n", totalPackets);}
+    if(DEBUG){printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS THE GODDAMN QUEUE\n~~~~~~~~~~~~~~~~~~~~~~~~\n");}
+
+
+/*
+
+    record all stats on the way!
+
+    Packet processing
+
+    if its LLP do the routing
+
+    go through everything in the queue chronologically
+
+    occupy the entire route, set the packet->willDie = TRUE,
+    then use the function to put the packet back in the queue.
+
+    if route is fully occupied, then well, i guess it fkn fails then eh
+    printf eat shit and die
+
+    if you find a packet that will die
+    remove the routes it is occupying
+    */
+
+    // this loop will go through all the oncoming packets!
+    while(packetQueue != NULL){
+        
+        break;
+        
+        if(strcmp(routing_scheme, "LLP")){
+            
+        }
+        //averageHops = ;
+        //averageDelay = ;
+        packetQueue = popQueue(packetQueue);
     }
-
-    // so then. lets make an interator and go until its null.
-/*    Node navi = packetQueue;
-
-    while(navi->next != NULL){
-
-    }
-
-    if(strcmp(routing_scheme, "LLP")){
-
-    }
-  */  // oh and do the last node as well.
+    // everything is free!
     
+    // we're done!
+    if(DEBUG){printf("\n\nMISSSHHON COMPLEEEE!\n\n\nAftermath:\n");}
 
     // print out statistical results in standard output
-
     printf("total number of virtual circuit requests: %d\n", rArrayCount);
     printf("total number of packets: %d\n", totalPackets);
     printf("number of successfully routed packets: %d\n", packetSuccessCounter);
     printf("percentage of successfully routed packets: %5.2f\n", ((float)packetSuccessCounter/(float)totalPackets) * 100);
     printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
     printf("percentage of blocked packets: %.2f\n", (((float)totalPackets - (float)packetSuccessCounter)/(float)totalPackets) * 100);
-    //printf("average number of hops per circuit: %.2f\n", );
-    //printf("average cumulative propagation delay per circuit: %.2f\n", );
-
-
-
-
+    printf("average number of hops per circuit: %.2f\n", 000000000.0);
+    printf("average cumulative propagation delay per circuit: %.2f\n", 00000000.0);
+    
+    
+    
+    
     return EXIT_SUCCESS;
 }
 
@@ -430,13 +432,7 @@ for packet
 ==================================================================================================
 ==================================================================================================
 ==================================================================================================
-==================================================================================================
-==================================================================================================
-==================================================================================================
 FUNCTION IMPLEMENTATIONS
-==================================================================================================
-==================================================================================================
-==================================================================================================
 ==================================================================================================
 ==================================================================================================
 ==================================================================================================
@@ -520,7 +516,7 @@ Queue addToQueue(Node node, Queue q) {
 
     // special case for for becoming earliest node
     if(current->packet->willDie == FALSE){
-        if(comparison < current->packet->startTime){
+        if(comparison <= current->packet->startTime){
             node->next = current;
             if(DEBUG){
                 printf("added FIRST node to existing queue\n");
@@ -529,7 +525,7 @@ Queue addToQueue(Node node, Queue q) {
         }
     }
     if(current->packet->willDie == TRUE){
-        if(comparison < current->packet->endTime){
+        if(comparison <= current->packet->endTime){
             node->next = current;
             if(DEBUG){
                 printf("added FIRST node to existing queue\n");
@@ -543,7 +539,7 @@ Queue addToQueue(Node node, Queue q) {
 
         // for all these remember the difference is comparison vs current-> NEXT
         if(current->packet->willDie == FALSE){
-            if(comparison < current->next->packet->startTime){
+            if(comparison <= current->next->packet->startTime){
                 node->next = current->next;
                 current->next = node;
                 if(DEBUG){
@@ -553,7 +549,7 @@ Queue addToQueue(Node node, Queue q) {
             }
         }
         if(current->packet->willDie == TRUE){
-            if(comparison < current->next->packet->endTime){
+            if(comparison <= current->next->packet->endTime){
                 node->next = current->next;
                 current->next = node;
                 if(DEBUG){
@@ -651,12 +647,12 @@ Link getLink(char end1, char end2, Link * linkArray, int lArrayCount){
     // have packet, have link, have size of link array
     // dont edit packets, just return the char* for it with a null terminator.
 
-char * routeSHP(Packet packet, Link link[], int lArraySize){
+int * routeSHP(Packet packet, Link link[], int lArraySize){
     return NULL;
 }
-char * routeSDP(Packet packet, Link link[], int lArraySize){
+int * routeSDP(Packet packet, Link link[], int lArraySize){
     return NULL;
 }
-char * routeLLP(Packet packet, Link link[], int lArraySize){
+int * routeLLP(Packet packet, Link link[], int lArraySize){
     return NULL;
 }
