@@ -719,6 +719,31 @@ void initialiseArray(int*array, int size){
     // dont edit packets, just return the char* for it with a null terminator.
 
 int * routeSHP(Packet packet){
+    int * path = malloc(sizeof(int)*MAX_PATH_SIZE);
+    initialiseArray(path, MAX_PATH_SIZE);
+    int i;
+    int place = 0;
+
+    int start = packet->source->origin - ASCII;
+    int end = packet->source->destination - ASCII;
+
+    // 
+
+    Packet * packetArray = malloc(sizeof(_packet)*MAX_PATH_SIZE);
+    for (i=0; i<MAX_PATH_SIZE; i++) {
+
+            pathArray[i] = newPath();
+            pathArray[i][0]->path[0] =  ;
+    }
+    
+    
+    
+
+
+    for (i=0; i < MAX_PATH_SIZE; i++) {
+        free(packetArray[i]);
+    }
+    free(packetArray);
     return NULL;
 }
 int * routeSDP(Packet packet){
