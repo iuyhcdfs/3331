@@ -20,9 +20,9 @@
 // lets set up all our statistics..
 int totalPackets = 0;
 int packetSuccessCounter = 0;
-float totalHops = 0;
-float totalDelay = 0;
-float totalRoutes = 0;
+double totalHops = 0;
+double totalDelay = 0;
+double totalRoutes = 0;
 
 // to make for loops compile on cse machines LIKE WHY NOT C99 GUYS
 int x = 0;
@@ -37,14 +37,6 @@ FUNCTION DECLARATIONS
 ==================================================================================================
 */
 
-// some janky ass path shit
-typedef struct _path{
-    int * path;
-    int size;
-} path;
-typedef struct _path * Path;
-Path newPath(void);
-
 
 // class: connection between two nodes
 typedef struct link{
@@ -56,6 +48,16 @@ typedef struct link{
 } _link;
 typedef _link * Link;
 Link newLink(void);
+
+// some janky ass path shit
+typedef struct _path{
+    int node;
+    double priority;
+    struct _path * parent;
+    struct _path * next;
+} path;
+typedef struct _path * Path;
+Path newPath(void);
 
 // class: request for network load
 typedef struct request{
@@ -94,10 +96,12 @@ typedef struct _node * Node;
 typedef struct _node * Queue;
 
 
+
+
 // routing algorithms to update the request circuit
-int * routeSHP(Packet packet);
-int * routeSDP(Packet packet);
-int * routeLLP(Packet packet);
+int * routeSHP(Packet packet, Link * linkArray, int lArrayCount);
+int * routeSDP(Packet packet, Link * linkArray, int lArrayCount);
+int * routeLLP(Packet packet, Link * linkArray, int lArrayCount);
 
 // queue functions - implementing a priority queue
 Queue newQueue(void);
@@ -263,7 +267,7 @@ int main (int argc, char* argv[]) {
     // compile our queue of packets
     Queue packetQueue = newQueue();
     // packet rate is packets per second, change to seconds per packet
-    float secondsPerPacket =  (float)1.0/packet_rate;
+    double secondsPerPacket =  (double)1.0/packet_rate;
     printf("we send a packet every %f seconds!\n", secondsPerPacket);
         // focus on processing every request first
         // for -> each request's index
@@ -295,8 +299,8 @@ int main (int argc, char* argv[]) {
             if(DEBUG){printf("\n================\nY loop iteration %d\n================\n", y);}
 
             Packet temp = newPacket(requestArray[x]);
-            temp->startTime = requestArray[x]->timeToConnect + (((float)y-1) * secondsPerPacket);
-            temp->endTime = requestArray[x]->timeToConnect + ((float)y * secondsPerPacket); 
+            temp->startTime = requestArray[x]->timeToConnect + (((double)y-1) * secondsPerPacket);
+            temp->endTime = requestArray[x]->timeToConnect + ((double)y * secondsPerPacket); 
             temp->willDie = 0;
 
             if(DEBUG){printf("ROUTING SDP OR SHP, and adding packet for this request\n");}
@@ -308,10 +312,10 @@ int main (int argc, char* argv[]) {
                     if(DEBUG){printf("first packet! leaving trigger for circuit LLP\n");}
 
                     if(strcmp(routing_scheme, "SDP")){
-                        requestArray[x]->circuitPath = routeSDP(temp);
+                        requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
                     }
                     if(strcmp(routing_scheme, "SHP")){
-                        requestArray[x]->circuitPath = routeSHP(temp);
+                        requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
                     }
                     // also we have to note for LLP that the first packet is the first here...
                     // all packets will now have pointers to the first packet
@@ -324,10 +328,10 @@ int main (int argc, char* argv[]) {
             // special: if we are in packet, just route each thing every time
             if(strcmp(network_scheme, "PACKET")){
                 if(strcmp(routing_scheme, "SDP")){
-                    temp->packetPath = routeSDP(temp);
+                    temp->packetPath = routeSDP(temp, linkArray, lArrayCount);
                 }
                 if(strcmp(routing_scheme, "SHP")){
-                    temp->packetPath = routeSHP(temp);
+                    temp->packetPath = routeSHP(temp, linkArray, lArrayCount);
                 }
                 // youll just route LLP every time mindlessly in phase 2.
             }
@@ -397,14 +401,14 @@ int main (int argc, char* argv[]) {
                 if(strcmp(network_scheme, "CIRCUIT")){
                     // so if we encounter the first of its request, the packet shall be routed
                     if(packetQueue->packet->first == TRUE){
-                        packetQueue->packet->source->circuitPath = routeLLP(packetQueue->packet);
+                        packetQueue->packet->source->circuitPath = routeLLP(packetQueue->packet, linkArray, lArrayCount);
                     } 
                     // we are always just copying the circuit path of the respective request otherwise.
                     packetQueue->packet->packetPath = packetQueue->packet->source->circuitPath;
                 }
                 // otherwise if its packet, just mindlessly route it every time.
                 if(strcmp(network_scheme, "PACKET")){
-                    packetQueue->packet->packetPath = routeLLP(packetQueue->packet);
+                    packetQueue->packet->packetPath = routeLLP(packetQueue->packet, linkArray, lArrayCount);
                 }
             }
 
@@ -435,7 +439,7 @@ int main (int argc, char* argv[]) {
             // ************** INCREMENT DOWN *****************
             for(x = 0; packetQueue->packet->packetPath[x] != '\0'; x++){
                 // go through the route and decrement the links each by 1
-            
+
             }
         }
 
@@ -459,9 +463,9 @@ int main (int argc, char* argv[]) {
     printf("total number of virtual circuit requests: %d\n", rArrayCount);
     printf("total number of packets: %d\n", totalPackets);
     printf("number of successfully routed packets: %d\n", packetSuccessCounter);
-    printf("percentage of successfully routed packets: %5.2f\n", ((float)packetSuccessCounter/(float)totalPackets) * 100);
+    printf("percentage of successfully routed packets: %5.2f\n", ((double)packetSuccessCounter/(double)totalPackets) * 100);
     printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
-    printf("percentage of blocked packets: %.2f\n", (((float)totalPackets - (float)packetSuccessCounter)/(float)totalPackets) * 100);
+    printf("percentage of blocked packets: %.2f\n", (((double)totalPackets - (double)packetSuccessCounter)/(double)totalPackets) * 100);
     printf("average number of hops per circuit: %.2f\n", totalHops/totalRoutes);
     printf("average cumulative propagation delay per circuit: %.2f\n", totalDelay/totalRoutes);
     
@@ -485,7 +489,8 @@ int main (int argc, char* argv[]) {
             }
             printf("\n");
         }
-    }    
+    }  
+
     /*
     ==================================================================================================
     7: exit
@@ -700,17 +705,11 @@ Packet newPacket(Request req){
 
 Path newPath(void){
     Path new = malloc(sizeof(struct _path));
-    new->path = malloc(sizeof(int) * MAX_PATH_SIZE);
-    initialiseArray(new->path, MAX_PATH_SIZE);
-    new->size = 0;
+    new->node = '\0';
+    new->priority = 0;
+    new->parent = NULL;
+    new->next = NULL;
     return new;
-}
-void initialiseArray(int*array, int size){
-    int i;
-    for(i = 0; i < size; i++){
-        array[i] = -1;
-    }
-    return;
 }
 
 
@@ -718,37 +717,96 @@ void initialiseArray(int*array, int size){
     // have packet, have link, have size of link array
     // dont edit packets, just return the char* for it with a null terminator.
 
-int * routeSHP(Packet packet){
-    int * path = malloc(sizeof(int)*MAX_PATH_SIZE);
-    initialiseArray(path, MAX_PATH_SIZE);
-    int i;
-    int place = 0;
+int linkIndex(Link link, Link * linkArray, int lArrayCount){
+    int i = 0;
+    for(i = 0; i < lArrayCount; i++){
+        if(link == linkArray[i]){
+            break;
+        }
+    }
+    return i;
+}
 
+int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
+
+    int * finalPath = malloc(sizeof(int)*MAX_PATH_SIZE);
+    
     int start = packet->source->origin - ASCII;
     int end = packet->source->destination - ASCII;
 
-    // 
+    // we have the adjmatrix
+    // we want the route obviously
+    // with the starting node we
+    // pass through to build list of all neighbours
+    
+    /*
+    get list of neighbours for current node from unchecked
+    repeat until you pick end node
+    */
 
-    Packet * packetArray = malloc(sizeof(_packet)*MAX_PATH_SIZE);
-    for (i=0; i<MAX_PATH_SIZE; i++) {
+    Link * checked = malloc(sizeof(Link)*lArrayCount);
+    Link * unchecked = malloc(sizeof(Link)*lArrayCount);
 
-            pathArray[i] = newPath();
-            pathArray[i][0]->path[0] =  ;
+    // the first in the priority queue.
+    Path queue = newPath();
+    queue->node = start;
+    // no priority weight for me
+    queue->priority = 0;
+    Path tail = queue;
+
+    int i = 0;
+    for(i = 0; i < lArrayCount; i++){
+        unchecked[i] = linkArray[i];
+    }
+    // we got all our unchecked.
+    int current = start;
+    int dontDie = TRUE;
+    while(dontDie = TRUE){
+        // get whatever's neighbours
+        for(i = 0; i < 26; i++){
+            if(adjMatrix[queue->node][i] != NULL){
+                // if we find a link
+                // create a new path for it
+                // attach it to ... whos its parent
+                // then add it to the queue
+                if(){
+                    Path temp = newPath();
+                    temp->node = i;
+                    int hops = 0;
+                    Path navi = temp;
+                    for(hops = 0; navi != NULL; hops++){
+                        navi = navi->parent;
+                    }
+                    if(DEBUG){printf("we have %d hops for this guy\n");}
+                    temp->priority = hops; 
+                    temp->parent = queue;
+                    tail->next = temp;
+                    
+
+                }
+            }
+        }
+        if(queue->next != NULL){
+            Path bleh = queue;
+            queue = queue->next;
+            free(bleh);
+            tail = queue;
+        }
     }
     
     
     
 
-
+/*
     for (i=0; i < MAX_PATH_SIZE; i++) {
         free(packetArray[i]);
     }
-    free(packetArray);
+    free(packetArray);*/
     return NULL;
 }
-int * routeSDP(Packet packet){
+int * routeSDP(Packet packet, Link * linkArray, int lArrayCount){
     return NULL;
 }
-int * routeLLP(Packet packet){
+int * routeLLP(Packet packet, Link * linkArray, int lArrayCount){
     return NULL;
 }
