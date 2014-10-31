@@ -45,7 +45,7 @@ typedef struct request{
     char origin;
     char destination;
     double timeToLive;
-    char circuitPath[26];
+    char circuitPath[27];
 } _request;
 typedef _request * Request;
 Request newRequest(void);
@@ -55,7 +55,7 @@ typedef struct packet{
     Request source;
     double startTime;
     double endTime;
-    char packetPath[26];
+    char packetPath[27];
     int willDie;
 } _packet;
 typedef _packet * Packet;
@@ -74,9 +74,9 @@ typedef struct _node * Queue;
 Link getLink(char end1, char end2, Link * linkArray, int lArrayCount);
 
 // routing algorithms to update the request circuit
-void routeLLP(Request request, Link link[]);
-void routeSHP(Request request, Link link[]);
-void routeSDP(Request request, Link link[]);
+void routeSHP(Packet packet, Link link[]);
+void routeSDP(Packet packet, Link link[]);
+void routeLLP(Packet packet, Link link[]);
 
 // queue functions - implementing a priority queue
 Queue newQueue(void);
@@ -208,7 +208,30 @@ so the following loop must be done afterwards
             if not then just skip the whole thing
     }
 
-    get output results and print    
+    get output results and print 
+
+    if(strcmp(network_scheme, "CIRCUIT")){
+                if(strcmp(routing_scheme, "SHP")){
+
+                }
+                if(strcmp(routing_scheme, "SDP")){
+
+                }
+                if(strcmp(routing_scheme, "LLP")){
+
+                }
+            }
+            if(strcmp(network_scheme, "PACKET")){
+                if(strcmp(routing_scheme, "SHP")){
+
+                }
+                if(strcmp(routing_scheme, "SDP")){
+
+                }
+                if(strcmp(routing_scheme, "LLP")){
+
+                }
+            }   
     ==================================================================================================
     */
 
@@ -219,63 +242,75 @@ so the following loop must be done afterwards
     // packet rate is packets per second, change to seconds per packet
     float secondsPerPacket =  (float)1.0/packet_rate;
     printf("we send a packet every %f seconds!\n", secondsPerPacket);
-    if(strcmp(network_scheme, "CIRCUIT")){
         // focus on processing every request first
         // for -> each request's index
 
-        printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);
-        for(int x = 0; x < rArrayCount; x++){
+    printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);
+    for(int x = 0; x < rArrayCount; x++){
+
+        if(DEBUG){
+            printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);
+        }
+        // split our request into multiple packets.
+        // take 1/packetRate = time per packet
+        // then ceiling(time to live/time per packet) + 1 = packets to send
+        // queue up packets per increment of time per packet from beginnin time.
+
+        // figure out number of packets to send, do all but the last one
+        int packetsToSend = ceil((requestArray[x]->timeToLive) / secondsPerPacket);
+        // add to total amount of packets
+        totalPackets += packetsToSend;
+
+
+        if(DEBUG){
+            printf("********* we are going to send %d packets\n", packetsToSend);
+        }
+
+        // make the packets for a single request
+        for(double y = 1; y < packetsToSend; y++){
 
             if(DEBUG){
-                printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);
-            }
-            // split our request into multiple packets.
-            // take 1/packetRate = time per packet
-            // then ceiling(time to live/time per packet) + 1 = packets to send
-            // queue up packets per increment of time per packet from beginnin time.
-
-            // figure out number of packets to send, do all but the last one
-            int packetsToSend = ceil((requestArray[x]->timeToLive) / secondsPerPacket);
-            // add to total amount of packets
-            totalPackets += packetsToSend;
-            
-
-            if(DEBUG){
-                printf("********* we are going to send %d packets\n", packetsToSend);
+                printf("\n================\nY loop iteration %f\n================\n", y);
             }
 
-            // make the packets for a single request
-            for(double y = 1; y < packetsToSend; y++){
-
-                if(DEBUG){
-                    printf("\n================\nY loop iteration %f\n================\n", y);
-                }
-
-                Packet temp = newPacket(requestArray[x]);
-                temp->startTime = requestArray[x]->timeToConnect + ((y-1) * secondsPerPacket);
-                temp->endTime = requestArray[x]->timeToConnect + (y * secondsPerPacket); 
-                temp->willDie = 0;
-                if(DEBUG){
-                    printf("adding packet for this request\n");
-                }
-                packetQueue = addToQueue(newNode(temp), packetQueue);
-            }
-
-            if(DEBUG){
-                printf("=========\nexited y loop\n=========\n");
-            }
-            // do the last packet.. it might be truncated early. it might not. cant loop this one. 
-            
             Packet temp = newPacket(requestArray[x]);
-            temp->startTime = requestArray[x]->timeToConnect + (packetsToSend-1)*secondsPerPacket;
-            temp->endTime = requestArray[x]->timeToConnect + requestArray[x]->timeToLive;
+            temp->startTime = requestArray[x]->timeToConnect + ((y-1) * secondsPerPacket);
+            temp->endTime = requestArray[x]->timeToConnect + (y * secondsPerPacket); 
             temp->willDie = 0;
             if(DEBUG){
-                printf("adding last packet for this request\n");
+                printf("adding packet for this request\n");
             }
+
+            // route per network and algorithm.
+            if(strcmp(routing_scheme, "SHP")){
+                routeSHP(temp, linkArray);
+            }
+            if(strcmp(routing_scheme, "SDP")){
+                routeSDP(temp, linkArray);
+            }
+
+            // LLP does nothing! do this later when we know how paths are loaded
+            
+            
+
             packetQueue = addToQueue(newNode(temp), packetQueue);
         }
+
+        if(DEBUG){
+            printf("=========\nexited y loop\n=========\n");
+        }
+        // do the last packet.. it might be truncated early. it might not. cant loop this one. 
+
+        Packet temp = newPacket(requestArray[x]);
+        temp->startTime = requestArray[x]->timeToConnect + (packetsToSend-1)*secondsPerPacket;
+        temp->endTime = requestArray[x]->timeToConnect + requestArray[x]->timeToLive;
+        temp->willDie = 0;
+        if(DEBUG){
+            printf("adding last packet for this request\n");
+        }
+        packetQueue = addToQueue(newNode(temp), packetQueue);
     }
+    
     // debug printing
     if(DEBUG){
         printAllPackets(packetQueue);
@@ -292,6 +327,10 @@ so the following loop must be done afterwards
     while(navi->next != NULL){
 
     }
+
+    if(strcmp(routing_scheme, "LLP")){
+
+        }
     // oh and do the last node as well.
 */
 
@@ -352,23 +391,15 @@ Link getLink(char end1, char end2, Link * linkArray, int lArrayCount){
 }
 
 // ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS, NULL if path invalid
-void routeSHP(Request request, Link link[]) {
-    //Stat temp = newStat();
 
+void routeSHP(Packet packet, Link link[]){
 
-    return;
 }
+void routeSDP(Packet packet, Link link[]){
 
-void routeSDP(Request request, Link link[]) {
-    //Stat temp = newStat();
-
-    return;
 }
+void routeLLP(Packet packet, Link link[]){
 
-void routeLLP(Request request, Link link[]) {
-    //Stat temp = newStat();
-
-    return;
 }
 
 void printAllPackets(Queue head){
