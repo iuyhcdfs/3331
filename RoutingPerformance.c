@@ -749,11 +749,11 @@ int linkIndex(Link link, Link * linkArray, int lArrayCount){
     int i = -1;
     for(i = 0; i < lArrayCount; i++){
         if(link == linkArray[i]){
-            printf("we got one at %d", i);
-            break;
+            //if(DEBUG){printf("we got one at %d\n", i);}
+            return i;
         }
     }
-    return i;
+    return -1;
 }
 
 int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
@@ -798,40 +798,47 @@ int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
         for(i = 0; i < 26; i++){
             if(adjMatrix[queue->node][i] != NULL){
                 if(DEBUG){
-                    printf("\n\n%d\n",queue->node);
-                    printf("FWEOIFJ@#(*JF@(#*JF FOUND A MATCH IN THE MATRIX AT %d\n", i);
-                    printf("between %c %c\n", adjMatrix[queue->node][i]->end1,adjMatrix[queue->node][i]->end2);
+                    printf("\n\nthe current queue to EXPAND is at node %c\n",queue->node + ASCII);
+                    printf("now, we found a match at %c\n", i + ASCII);
+                    printf("and its a link between %c %c\n", adjMatrix[queue->node][i]->end1,adjMatrix[queue->node][i]->end2);
                 }
-            // if we find a link
-            // create a new path for it
-            // attach it to ... whos its parent
-            // then add it to the queue
+                // if we find a link
+                // create a new path for it
+                // attach it to ... whos its parent
+                // then add it to the queue
                 if(-1 != linkIndex(adjMatrix[queue->node][i], unchecked, lArrayCount)){
-                    if(DEBUG){ printf("we have an unchecked match\n");}
-                // otherwise we continue the search
+                    if(DEBUG){ printf("also, we havent done this before!\n");}
+
+                    // otherwise we continue the search
                     Path temp = newPath();
                     temp->node = i;
                     int hops = 0;
-                    if(queue->parent != NULL){
-                        hops = queue->parent->priority + 1;
+                    if(queue != NULL){
+                        printf("\n\n FIX ME\n\n\n\n");
+                        hops = queue->priority + 1;
                     }
-                //if(DEBUG){printf("we have %d hops for this guy\n", hops);}
+                    if(DEBUG){printf("we have %d hops for this guy\n", hops);}
                     temp->priority = (double)hops; 
                     temp->parent = queue;
-                // were done if were done
+                    // were done if were done
+
+                    // and remove from unchecked nodes
+                    unchecked[linkIndex(adjMatrix[queue->node][i], unchecked, lArrayCount)] = NULL;
                     if(i == end){
+                        if(DEBUG){printf("we finished. we're at %c which should be next to %c\n",queue->node + ASCII,end + ASCII);}
                         queue = temp;
                         dontDie = FALSE;
                         break;
                     }
                     tail->next = temp;
                     tail = temp;
-                    unchecked[linkIndex(adjMatrix[queue->node][i], unchecked, lArrayCount)] = NULL;
+                } else if (DEBUG) {
+                    if(DEBUG){ printf("but we've already checked this one.\n");}
                 }
             }
         }
-        if(DEBUG){printf("expect q to change\n");}
         if(dontDie == TRUE){
+            if(DEBUG){printf("\ntime to try a new queue\n");}
             Path bleh = queue;
             queue = queue->next;
             free(bleh);
@@ -842,9 +849,9 @@ int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
             printf("wehave unchecked %p\n", unchecked[i]);
         }
     }
-// so now QUEUE is the lowest child and also the solution
-    for (i = queue->priority; i >= 0; i--) {
-        printf("GWEOIJF)@(#JF)@(#JF)(@J#F %d\n", i);
+    // so now QUEUE is the lowest child and also the solution
+    for (i = queue->priority+1; i >= 0; i--) {
+        printf("looping through final path: %c\n", queue->node + ASCII);
         finalPath[i] = queue->node;
         queue = queue->parent;
     }
