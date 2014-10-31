@@ -13,6 +13,7 @@
 #define FALSE 0
 // do you want debug prints?
 #define DEBUG 1
+#define DEBUG2 1
 // displacement of capital ASCII letters
 #define ASCII 65
 #define MAX_PATH_SIZE 28
@@ -78,6 +79,7 @@ typedef struct packet{
     int willDie;
     int first;
     int length;
+    struct packet * original;
 } _packet;
 typedef _packet * Packet;
 Packet newPacket(Request req);
@@ -263,6 +265,7 @@ int main (int argc, char* argv[]) {
 
 
 
+    Packet firstPack;
     // compile our queue of packets
     Queue packetQueue = newQueue();
     // packet rate is packets per second, change to seconds per packet
@@ -291,7 +294,6 @@ int main (int argc, char* argv[]) {
 
         // WE ARE AT THE BEGINNING OF A NEW LOOP SO WE MUST SET THE FIRST PACKET TO TRUE
         int firstPacket = TRUE;
-
         // make the packets for a single request
         for(y = 1; y < packetsToSend; y++){
 
@@ -318,8 +320,11 @@ int main (int argc, char* argv[]) {
                     // all packets will now have pointers to the first packet
                     temp->first = TRUE;
                     firstPacket = FALSE;
+                    firstPack = temp;
                 }
                 // EVERY TIME in circuit, the original circuit path is used.
+                temp->original = firstPack;
+                temp->length = temp->original->length;
                 temp->packetPath = requestArray[x]->circuitPath;
             }
             // special: if we are in packet, just route each thing every time
@@ -359,12 +364,12 @@ int main (int argc, char* argv[]) {
                 if(0 == strcmp(routing_scheme, "SHP")){
                     requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
                 }
-                    // also we have to note for LLP that the first packet is the first here...
-                    // all packets will now have pointers to the first packet
                 temp->first = TRUE;
                 firstPacket = FALSE;
+                firstPack = temp;
             }
                 // EVERY TIME in circuit, the original circuit path is used.
+            temp->original = firstPack;
             temp->packetPath = requestArray[x]->circuitPath;
         }
             // special: if we are in packet, just route each thing every time
@@ -461,6 +466,7 @@ int main (int argc, char* argv[]) {
                 // a packet succeeded! INCREMENT THE COUNTER
                 if(DEBUG){printf("packet routed!\n");}
                 packetSuccessCounter++;
+                if(DEBUG2){printf("is our length meant to be %d\n",packetQueue->packet->length);}
                 // go through the route and load up the links each by 1
                 // add up the total delay and the number hops to the global numbers while youre at it
                 for(x = 0; x + 1 < packetQueue->packet->length; x++){
@@ -472,7 +478,7 @@ int main (int argc, char* argv[]) {
                     totalDelay += adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->distance;
                 }
                 // update stats
-                totalHops += packetQueue->packet->length - 1;
+                totalHops += packetQueue->packet->length;
                 // once we've added this, we have to add the packet's kill time to the queue...
 
                 packetQueue->packet->willDie = TRUE;
@@ -885,6 +891,7 @@ int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
         queue = queue->parent;
         hops++;
     }
+    if(DEBUG2){printf("recorded length hops as %d\n",hops);}
     // update the packet's hop length...
     packet->length = hops;
     
