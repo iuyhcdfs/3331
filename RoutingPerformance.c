@@ -265,7 +265,7 @@ int main (int argc, char* argv[]) {
 
 
 
-    Packet firstPack;
+    Packet firstPack = NULL;
     // compile our queue of packets
     Queue packetQueue = newQueue();
     // packet rate is packets per second, change to seconds per packet
@@ -446,7 +446,7 @@ int main (int argc, char* argv[]) {
                 }
             }
 
-            // ************* INCREMENT UP if we can *************
+            // ************* check if we  *************
             // now we just increase the load of the route for whatever
             // its already been routed for the other two algorithms by the way
             int pathClear = TRUE;
@@ -469,6 +469,7 @@ int main (int argc, char* argv[]) {
                 if(DEBUG){printf("is our length meant to be %d\n",packetQueue->packet->length);}
                 // go through the route and load up the links each by 1
                 // add up the total delay and the number hops to the global numbers while youre at it
+            // ************* INCREMENT UP if we can *************
                 for(x = 0; x + 1 < packetQueue->packet->length; x++){
                     // so now were going through the packet's path
                     // and we're updating the links
@@ -493,9 +494,9 @@ int main (int argc, char* argv[]) {
         // dying packets must have their burden removed from the appropriate links.
         else if(packetQueue->packet->willDie == TRUE){
 
-            if(DEBUG){printf("shit\n");}
+//            if(DEBUG){printf("shit\n");}
             if(DEBUG){printf("killing a packet!\n");}
-            // ************** INCREMENT DOWN *****************
+            // ************** INCREMENT DOWN EACH LINK *****************
             for(x = 0; x + 1 < packetQueue->packet->length; x++){
                     // so now were going through the packet's path
                     // and we're updating the links
