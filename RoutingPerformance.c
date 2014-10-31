@@ -283,7 +283,7 @@ int main (int argc, char* argv[]) {
         // then ceiling(time to live/time per packet) + 1 = packets to send
         // queue up packets per increment of time per packet from beginnin time.
 
-        // figure out number of packets to send, do all but the last one
+        // figure out number of packets to send PER REQUEST, do all but the last one
         int packetsToSend = ceil((requestArray[x]->timeToLive) / secondsPerPacket);
         // add to total amount of packets
         totalPackets += packetsToSend;
@@ -302,19 +302,17 @@ int main (int argc, char* argv[]) {
             temp->startTime = requestArray[x]->timeToConnect + (((double)y-1) * secondsPerPacket);
             temp->endTime = requestArray[x]->timeToConnect + ((double)y * secondsPerPacket); 
             temp->willDie = 0;
-
             if(DEBUG){printf("ROUTING SDP OR SHP, and adding packet for this request\n");}
-
             // special: if we are circuit, each request is on the same circuit! figure out the route NOW.
-            if(strcmp(network_scheme, "CIRCUIT")){
+            if(0 == strcmp(network_scheme, "CIRCUIT")){
                 if(firstPacket == TRUE){
 
                     if(DEBUG){printf("first packet! leaving trigger for circuit LLP\n");}
 
-                    if(strcmp(routing_scheme, "SDP")){
+                    if(0 == strcmp(routing_scheme, "SDP")){
                         requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
                     }
-                    if(strcmp(routing_scheme, "SHP")){
+                    if(0 == strcmp(routing_scheme, "SHP")){
                         requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
                     }
                     // also we have to note for LLP that the first packet is the first here...
@@ -326,11 +324,11 @@ int main (int argc, char* argv[]) {
                 temp->packetPath = requestArray[x]->circuitPath;
             }
             // special: if we are in packet, just route each thing every time
-            if(strcmp(network_scheme, "PACKET")){
-                if(strcmp(routing_scheme, "SDP")){
+            if(0 == strcmp(network_scheme, "PACKET")){
+                if(0 == strcmp(routing_scheme, "SDP")){
                     temp->packetPath = routeSDP(temp, linkArray, lArrayCount);
                 }
-                if(strcmp(routing_scheme, "SHP")){
+                if(0 == strcmp(routing_scheme, "SHP")){
                     temp->packetPath = routeSHP(temp, linkArray, lArrayCount);
                 }
                 // youll just route LLP every time mindlessly in phase 2.
@@ -349,11 +347,42 @@ int main (int argc, char* argv[]) {
         temp->startTime = requestArray[x]->timeToConnect + (packetsToSend-1)*secondsPerPacket;
         temp->endTime = requestArray[x]->timeToConnect + requestArray[x]->timeToLive;
         temp->willDie = 0;
-        
+
+        // STILL NEED TO ROUTE LAST PACKET BLARRGH
+        if(0 == strcmp(network_scheme, "CIRCUIT")){
+            if(firstPacket == TRUE){
+
+                if(DEBUG){printf("first packet! also the last! leaving trigger for circuit LLP\n");}
+
+                if(0 == strcmp(routing_scheme, "SDP")){
+                    requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
+                }
+                if(0 == strcmp(routing_scheme, "SHP")){
+                    requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
+                }
+                    // also we have to note for LLP that the first packet is the first here...
+                    // all packets will now have pointers to the first packet
+                temp->first = TRUE;
+                firstPacket = FALSE;
+            }
+                // EVERY TIME in circuit, the original circuit path is used.
+            temp->packetPath = requestArray[x]->circuitPath;
+        }
+            // special: if we are in packet, just route each thing every time
+        if(0 == strcmp(network_scheme, "PACKET")){
+            if(0 == strcmp(routing_scheme, "SDP")){
+                temp->packetPath = routeSDP(temp, linkArray, lArrayCount);
+            }
+            if(0 == strcmp(routing_scheme, "SHP")){
+                temp->packetPath = routeSHP(temp, linkArray, lArrayCount);
+            }
+                // youll just route LLP every time mindlessly in phase 2.
+        }
+
         if(DEBUG){printf("adding last packet for this request\n");}
         packetQueue = addToQueue(newNode(temp), packetQueue);
     }
-    
+
     // debug printing
     if(DEBUG){printAllPackets(packetQueue);}
     // loop through our queue of packets
@@ -396,9 +425,9 @@ int main (int argc, char* argv[]) {
 
             // ************* LLP ***************
             // firstly, we have to do the LLP routing
-            if(strcmp(routing_scheme, "LLP")){
+            if(0 == strcmp(routing_scheme, "LLP")){
                 // if its circuit, then we only need one computation of the route
-                if(strcmp(network_scheme, "CIRCUIT")){
+                if(0 == strcmp(network_scheme, "CIRCUIT")){
                     // so if we encounter the first of its request, the packet shall be routed
                     if(packetQueue->packet->first == TRUE){
                         packetQueue->packet->source->circuitPath = routeLLP(packetQueue->packet, linkArray, lArrayCount);
@@ -407,7 +436,7 @@ int main (int argc, char* argv[]) {
                     packetQueue->packet->packetPath = packetQueue->packet->source->circuitPath;
                 }
                 // otherwise if its packet, just mindlessly route it every time.
-                if(strcmp(network_scheme, "PACKET")){
+                if(0 == strcmp(network_scheme, "PACKET")){
                     packetQueue->packet->packetPath = routeLLP(packetQueue->packet, linkArray, lArrayCount);
                 }
             }
@@ -704,7 +733,7 @@ Packet newPacket(Request req){
 }
 
 Path newPath(void){
-    Path new = malloc(sizeof(struct _path));
+    Path new = malloc(sizeof(path));
     new->node = '\0';
     new->priority = 0;
     new->parent = NULL;
@@ -712,15 +741,15 @@ Path newPath(void){
     return new;
 }
 
-
 // ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS, NULL if path invalid
     // have packet, have link, have size of link array
     // dont edit packets, just return the char* for it with a null terminator.
 
 int linkIndex(Link link, Link * linkArray, int lArrayCount){
-    int i = 0;
+    int i = -1;
     for(i = 0; i < lArrayCount; i++){
         if(link == linkArray[i]){
+            printf("we got one at %d", i);
             break;
         }
     }
@@ -731,6 +760,7 @@ int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
 
     int * finalPath = malloc(sizeof(int)*MAX_PATH_SIZE);
     
+
     int start = packet->source->origin - ASCII;
     int end = packet->source->destination - ASCII;
 
@@ -744,7 +774,6 @@ int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
     repeat until you pick end node
     */
 
-    Link * checked = malloc(sizeof(Link)*lArrayCount);
     Link * unchecked = malloc(sizeof(Link)*lArrayCount);
 
     // the first in the priority queue.
@@ -755,54 +784,80 @@ int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
     Path tail = queue;
 
     int i = 0;
+    for(i = 0; i < 26; i++){
+        finalPath[i] = -1;
+    }
     for(i = 0; i < lArrayCount; i++){
         unchecked[i] = linkArray[i];
     }
+
     // we got all our unchecked.
-    int current = start;
     int dontDie = TRUE;
-    while(dontDie = TRUE){
-        // get whatever's neighbours
+    while(dontDie == TRUE){
+        // each time we get the kid we loop through to find all their neighbours
         for(i = 0; i < 26; i++){
             if(adjMatrix[queue->node][i] != NULL){
-                // if we find a link
-                // create a new path for it
-                // attach it to ... whos its parent
-                // then add it to the queue
-                if(){
+                if(DEBUG){
+                    printf("\n\n%d\n",queue->node);
+                    printf("FWEOIFJ@#(*JF@(#*JF FOUND A MATCH IN THE MATRIX AT %d\n", i);
+                    printf("between %c %c\n", adjMatrix[queue->node][i]->end1,adjMatrix[queue->node][i]->end2);
+                }
+            // if we find a link
+            // create a new path for it
+            // attach it to ... whos its parent
+            // then add it to the queue
+                if(-1 != linkIndex(adjMatrix[queue->node][i], unchecked, lArrayCount)){
+                    if(DEBUG){ printf("we have an unchecked match\n");}
+                // otherwise we continue the search
                     Path temp = newPath();
                     temp->node = i;
                     int hops = 0;
-                    Path navi = temp;
-                    for(hops = 0; navi != NULL; hops++){
-                        navi = navi->parent;
+                    if(queue->parent != NULL){
+                        hops = queue->parent->priority + 1;
                     }
-                    if(DEBUG){printf("we have %d hops for this guy\n");}
-                    temp->priority = hops; 
+                //if(DEBUG){printf("we have %d hops for this guy\n", hops);}
+                    temp->priority = (double)hops; 
                     temp->parent = queue;
+                // were done if were done
+                    if(i == end){
+                        queue = temp;
+                        dontDie = FALSE;
+                        break;
+                    }
                     tail->next = temp;
-                    
-
+                    tail = temp;
+                    unchecked[linkIndex(adjMatrix[queue->node][i], unchecked, lArrayCount)] = NULL;
                 }
             }
         }
-        if(queue->next != NULL){
+        if(DEBUG){printf("expect q to change\n");}
+        if(dontDie == TRUE){
             Path bleh = queue;
             queue = queue->next;
             free(bleh);
-            tail = queue;
         }
     }
-    
-    
-    
-
-/*
-    for (i=0; i < MAX_PATH_SIZE; i++) {
-        free(packetArray[i]);
+    if(DEBUG){
+        for(i = 0; i < lArrayCount; i++){
+            printf("wehave unchecked %p\n", unchecked[i]);
+        }
     }
-    free(packetArray);*/
-    return NULL;
+// so now QUEUE is the lowest child and also the solution
+    for (i = queue->priority; i >= 0; i--) {
+        printf("GWEOIJF)@(#JF)@(#JF)(@J#F %d\n", i);
+        finalPath[i] = queue->node;
+        queue = queue->parent;
+    }
+    if(DEBUG){
+        printf("\n\n\n\n\n\nohdear\n");
+        int papa = 0;
+        while(papa < 26){
+            printf("%d",finalPath[papa]);
+            papa++;
+        }
+        printf("\n");
+    }
+    return finalPath;
 }
 int * routeSDP(Packet packet, Link * linkArray, int lArrayCount){
     return NULL;
