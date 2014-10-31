@@ -12,8 +12,8 @@
 #define TRUE 1
 #define FALSE 0
 // do you want debug prints?
-#define DEBUG 1
-#define DEBUG2 1
+#define DEBUG 0
+#define DEBUG2 0
 // displacement of capital ASCII letters
 #define ASCII 65
 #define MAX_PATH_SIZE 28
@@ -466,14 +466,15 @@ int main (int argc, char* argv[]) {
                 // a packet succeeded! INCREMENT THE COUNTER
                 if(DEBUG){printf("packet routed!\n");}
                 packetSuccessCounter++;
-                if(DEBUG2){printf("is our length meant to be %d\n",packetQueue->packet->length);}
+                if(DEBUG){printf("is our length meant to be %d\n",packetQueue->packet->length);}
                 // go through the route and load up the links each by 1
                 // add up the total delay and the number hops to the global numbers while youre at it
                 for(x = 0; x + 1 < packetQueue->packet->length; x++){
                     // so now were going through the packet's path
                     // and we're updating the links
-                    if(DEBUG){printf("now incrementing the load of link between %c and %c\n",packetQueue->packet->packetPath[x] + ASCII,packetQueue->packet->packetPath[x+1] + ASCII);}
+                    if(DEBUG2){printf("now incrementing the load of link between %c and %c\n",packetQueue->packet->packetPath[x] + ASCII,packetQueue->packet->packetPath[x+1] + ASCII);}
                     adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad++;
+                    if(DEBUG2){printf("current load is %d\n",adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad);}
                     // update stats
                     totalDelay += adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->distance;
                 }
@@ -481,19 +482,16 @@ int main (int argc, char* argv[]) {
                 totalHops += packetQueue->packet->length;
                 // once we've added this, we have to add the packet's kill time to the queue...
 
-                packetQueue->packet->willDie = TRUE;
                 Node blahh = newNode(packetQueue->packet);
                 blahh->next = NULL;
                 packetQueue = addToQueue(blahh, packetQueue);
+                blahh->packet->willDie = TRUE;
             }
         }
 
-        if(DEBUG){printf("almost loop\n");}
-
-
         // ************* DEATH **************
         // dying packets must have their burden removed from the appropriate links.
-        if(packetQueue->packet->willDie == TRUE){
+        else if(packetQueue->packet->willDie == TRUE){
 
             if(DEBUG){printf("shit\n");}
             if(DEBUG){printf("killing a packet!\n");}
@@ -502,7 +500,9 @@ int main (int argc, char* argv[]) {
                     // so now were going through the packet's path
                     // and we're updating the links
                 if(DEBUG){printf("now DECREASING the load of link between %c and %c\n",packetQueue->packet->packetPath[x] + ASCII,packetQueue->packet->packetPath[x+1] + ASCII);}
-                adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad--;
+                adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad --;
+                if(DEBUG2){
+                }
             }
 
         }
@@ -712,7 +712,7 @@ Node popQueue(Queue q) {
     if (q != NULL) {
         n = q;
         q = q->next;
-        free(n);
+        //free(n);
         return q;
     }
     return n;
