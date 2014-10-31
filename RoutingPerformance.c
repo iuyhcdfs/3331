@@ -11,7 +11,12 @@
 
 #define TRUE 1
 #define FALSE 0
+// do you want debug prints?
 #define DEBUG 1
+
+// lets set up all our statistics..
+int totalPackets = 0;
+int packetSuccessCounter = 0;
 
 /*
 ==================================================================================================
@@ -184,20 +189,7 @@ int main (int argc, char* argv[]) {
 
     /*
     ==================================================================================================
-    The general plan:
-
-    if -> distinguish network type {
-        loop -> to add packets to queue {
-            if -> distinguish algorithm type {
-                apply algorithm type and update route
-                have code to repeat per packet if network time is PACKET
-                function void addToQueue();
-                    add to queue must place it in the correct order
-            }
-        }
-    } 
-sooo to make the loop and iterate at same time or to do it later....
-for hop and delay it doesnt matter, it would have tried whatever any way
+    Things to do:
 
 but you want to do it seperate... you have to take care of multiple requests
 so youll HAVE to make a afterwards loop
@@ -218,6 +210,7 @@ so the following loop must be done afterwards
     ==================================================================================================
     */
 
+    
 
     // compile our queue of packets
     Queue packetQueue = newQueue();
@@ -227,6 +220,7 @@ so the following loop must be done afterwards
     if(strcmp(network_scheme, "CIRCUIT")){
         // focus on processing every request first
         // for -> each request's index
+
         printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);
         for(int x = 0; x < rArrayCount; x++){
 
@@ -240,7 +234,10 @@ so the following loop must be done afterwards
 
             // figure out number of packets to send, do all but the last one
             int packetsToSend = ceil((requestArray[x]->timeToLive) / secondsPerPacket);
+            // add to total amount of packets
+            totalPackets += packetsToSend;
             
+
             if(DEBUG){
                 printf("********* we are going to send %d packets\n", packetsToSend);
             }
@@ -283,21 +280,30 @@ so the following loop must be done afterwards
     }
     // loop through our queue of packets
     if(DEBUG){
+        printf("%d\n", totalPackets);
         printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS THE GODDAMN QUEUE\n~~~~~~~~~~~~~~~~~~~~~~~~\n");
     }
 
+    // so then. lets make an interator and go until its null.
+  /*  Node navi = packetQueue;
+
+    while(navi->next != NULL){
+
+    }
+    // oh and do the last node as well.
+*/
 
     // print out statistical results in standard output
-   /*
-    printf("total number of virtual circuit requests: %d\n",  );
-    printf("total number of packets: %d\n",                   );
-    printf("number of successfully routed packets: %d\n",     );
-    percentage of successfully routed packets: 79.63
-    number of blocked packets: 935
-    percentage of blocked packets: 20.37
-    average number of hops per circuit: 5.42
-    average cumulative propagation delay per circuit: 120.54
-    */
+
+    printf("total number of virtual circuit requests: %d\n", rArrayCount);
+    printf("total number of packets: %d\n", totalPackets);
+    printf("number of successfully routed packets: %d\n", packetSuccessCounter);
+    printf("percentage of successfully routed packets: %5.2f\n", ((float)packetSuccessCounter/(float)totalPackets) * 100);
+        //printf("number of blocked packets: %d\n",    );
+        //printf("percentage of blocked packets: %.2f\n", );
+        //printf("average number of hops per circuit: %.2f\n", );
+        //printf("average cumulative propagation delay per circuit: %.2f\n", );
+
 
 
 
