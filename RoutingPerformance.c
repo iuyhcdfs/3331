@@ -1,7 +1,7 @@
 /*
-//	make virtual network
-//	test simple routing algorithms on virtual network
-//	dont forget the report!
+//    make virtual network
+//    test simple routing algorithms on virtual network
+//    dont forget the report!
 */
 
 #include <stdio.h>
@@ -12,8 +12,9 @@
 #define TRUE 1
 #define FALSE 0
 // do you want debug prints?
-#define DEBUG 0
-#define DEBUG2 0
+#define DEBUG 1
+#define DEBUG2 1
+#define DEBUG3 1
 // displacement of capital ASCII letters
 #define ASCII 65
 #define MAX_PATH_SIZE 28
@@ -276,7 +277,6 @@ int main (int argc, char* argv[]) {
 
     if(DEBUG){printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);}
     
-
     for(x = 0; x < rArrayCount; x++){
 
         if(DEBUG){printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);}
@@ -360,17 +360,20 @@ int main (int argc, char* argv[]) {
 
                 if(0 == strcmp(routing_scheme, "SDP")){
                     requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
+                    
                 }
                 if(0 == strcmp(routing_scheme, "SHP")){
                     requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
+
                 }
                 temp->first = TRUE;
                 firstPacket = FALSE;
                 firstPack = temp;
+                
+                temp->original = firstPack;
+                temp->packetPath = requestArray[x]->circuitPath;
             }
                 // EVERY TIME in circuit, the original circuit path is used.
-            temp->original = firstPack;
-            temp->packetPath = requestArray[x]->circuitPath;
         }
             // special: if we are in packet, just route each thing every time
         if(0 == strcmp(network_scheme, "PACKET")){
@@ -415,7 +418,6 @@ int main (int argc, char* argv[]) {
     delays
     routes
     */
-
 
     // this loop will go through all the oncoming packets!
     while(packetQueue != NULL){
@@ -501,11 +503,11 @@ int main (int argc, char* argv[]) {
                     // so now were going through the packet's path
                     // and we're updating the links
                 if(DEBUG){printf("now DECREASING the load of link between %c and %c\n",packetQueue->packet->packetPath[x] + ASCII,packetQueue->packet->packetPath[x+1] + ASCII);}
-                adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad --;
+                adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad--;
                 if(DEBUG2){
+                    printf("current load %d\n", adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad);
                 }
             }
-
         }
         packetQueue = popQueue(packetQueue);
     }
@@ -630,7 +632,7 @@ Queue addToQueue(Node node, Queue q) {
     // case for a completely empty queue
     if(q == NULL){
         q = newNode(node->packet);
-        if(DEBUG){
+        if(DEBUG3){
             printf("\nadded FIRST node to queue\n");
         }
         return q;
@@ -643,7 +645,7 @@ Queue addToQueue(Node node, Queue q) {
         comparison = node->packet->startTime;
     }
 
-    if(DEBUG){
+    if(DEBUG3){
         printf("searching filled node queue\n");
     }
 
@@ -653,19 +655,19 @@ Queue addToQueue(Node node, Queue q) {
 
     // special case for for becoming earliest node
     if(current->packet->willDie == FALSE){
-        if(comparison <= current->packet->startTime){
+        if(comparison < current->packet->startTime){
             node->next = current;
-            if(DEBUG){
-                printf("added FIRST node to existing queue\n");
+            if(DEBUG3){
+                printf("added STARTING node to existing queue\n");
             }
             return node;
         }
     }
     if(current->packet->willDie == TRUE){
-        if(comparison <= current->packet->endTime){
+        if(comparison < current->packet->endTime){
             node->next = current;
-            if(DEBUG){
-                printf("added FIRST node to existing queue\n");
+            if(DEBUG3){
+                printf("added STARTING node to existing queue\n");
             }
             return node;
         }
@@ -679,7 +681,7 @@ Queue addToQueue(Node node, Queue q) {
             if(comparison <= current->next->packet->startTime){
                 node->next = current->next;
                 current->next = node;
-                if(DEBUG){
+                if(DEBUG3){
                     printf("added SOME MIDDLE node to queue\n");
                 }
                 return q;
@@ -689,7 +691,7 @@ Queue addToQueue(Node node, Queue q) {
             if(comparison <= current->next->packet->endTime){
                 node->next = current->next;
                 current->next = node;
-                if(DEBUG){
+                if(DEBUG3){
                     printf("added SOME MIDDLE node to queue\n");
                 }
                 return q;
@@ -698,7 +700,7 @@ Queue addToQueue(Node node, Queue q) {
         current = current->next;
     }    
     current->next = node;
-    if(DEBUG){
+    if(DEBUG3){
         printf("\nadded LAST node to queue\n");
     }
     return q;
