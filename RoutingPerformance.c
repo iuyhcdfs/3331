@@ -15,16 +15,19 @@
 #define DEBUG 1
 // displacement of capital ASCII letters
 #define ASCII 65
+#define MAX_PATH_SIZE 27
 
 // lets set up all our statistics..
 int totalPackets = 0;
 int packetSuccessCounter = 0;
-float averageHops = 0;
-float averageDelay = 0;
+float totalHops = 0;
+float totalDelay = 0;
+float totalRoutes = 0;
 
 // to make for loops compile on cse machines LIKE WHY NOT C99 GUYS
 int x = 0;
 int y = 0;
+int z = 0;
 
 /*
 ==================================================================================================
@@ -33,6 +36,15 @@ TYPEDEFS
 FUNCTION DECLARATIONS
 ==================================================================================================
 */
+
+// some janky ass path shit
+typedef struct _path{
+    int * path;
+    int size;
+} path;
+typedef struct _path * Path;
+Path newPath(void);
+
 
 // class: connection between two nodes
 typedef struct link{
@@ -64,6 +76,7 @@ typedef struct packet{
     int * packetPath;
     int willDie;
     int first;
+    int length;
 } _packet;
 typedef _packet * Packet;
 Packet newPacket(Request req);
@@ -82,15 +95,17 @@ typedef struct _node * Queue;
 
 
 // routing algorithms to update the request circuit
-int * routeSHP(Packet packet, Link link[], int lArraySize);
-int * routeSDP(Packet packet, Link link[], int lArraySize);
-int * routeLLP(Packet packet, Link link[], int lArraySize);
+int * routeSHP(Packet packet);
+int * routeSDP(Packet packet);
+int * routeLLP(Packet packet);
 
 // queue functions - implementing a priority queue
 Queue newQueue(void);
 Queue addToQueue(Node newNode, Queue q);
 Node popQueue(Queue q);
 Node newNode(Packet packet);
+
+void initialiseArray(int*array, int size);
 
 // printing functions for debugging
 void printAllLinks(Link * linkArray, int linkSize);
@@ -101,11 +116,25 @@ void printAllPackets(Queue head);
 /*
 ==================================================================================================
 MAIN
+#: can be searched for appropriately commented bookmarks
+1: initialise
+2: read in files
+3: load read data into appropriate structs
+4: add the queue of packets
+5: Process the queue
+6: put statistics into standard output
+7: exit
 ==================================================================================================
 */
 
 
 int main (int argc, char* argv[]) {
+
+    /*
+    ==================================================================================================
+    1: initialise
+    ==================================================================================================
+    */
     // set whole matrix to zero
     for(x = 0; x < 26; x++){
         for(y = 0; y < 26; y++){
@@ -127,6 +156,12 @@ int main (int argc, char* argv[]) {
     if(DEBUG){printf("\n\n\n\n\n\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nBEGIN ROUTING PERFORMANCE\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
     printf("DEBUG args read: %s %s %s %s %s %d\n", argv[0], network_scheme, routing_scheme, topology_file, workload_file, packet_rate);}
 
+    /*
+    ==================================================================================================
+    2: read in files
+    ==================================================================================================
+    */
+
     // get our files
     FILE * tFile; 
     tFile = fopen(topology_file, "rt");
@@ -144,6 +179,13 @@ int main (int argc, char* argv[]) {
         wCount++;
     }
     if(DEBUG){printf("debug!: topology %d workload %d\n", tCount, wCount);}
+
+
+    /*
+    ==================================================================================================
+    3: load read data into appropriate structs
+    ==================================================================================================
+    */
 
     // make arrays of structs for the files
     Link linkArray[tCount];
@@ -209,61 +251,14 @@ int main (int argc, char* argv[]) {
     if(DEBUG){printAllRequests(requestArray, rArrayCount);}
     if(DEBUG){printf("files read! time to add things to the queue\n");}
 
-    // print out adjacency matrix.
-    if(DEBUG){
-        printf("  ");
-        for(y = 0; y < 26; y++){
-            printf("%c ", y+ASCII);
-        }
-        printf("\n");
-        for(x = 0; x < 26; x++){
-            printf("%c ", x+ASCII);
-            for(y = 0; y < 26; y++){
-                if(adjMatrix[x][y] != NULL){
-                    printf("X ");
-                } else {
-                    printf("  ");
-                }
-            }
-            printf("\n");
-        }
-    }
 
     /*
     ==================================================================================================
-    Things to do:
-
-
-    get output results and print via the usual schematic
-
-    heres a thing to copy paste
-
-    if(strcmp(network_scheme, "CIRCUIT")){
-                if(strcmp(routing_scheme, "SHP")){
-
-                }
-                if(strcmp(routing_scheme, "SDP")){
-
-                }
-                if(strcmp(routing_scheme, "LLP")){
-
-                }
-            }
-            if(strcmp(network_scheme, "PACKET")){
-                if(strcmp(routing_scheme, "SHP")){
-
-                }
-                if(strcmp(routing_scheme, "SDP")){
-
-                }
-                if(strcmp(routing_scheme, "LLP")){
-
-                }}
-            }   
+    4: add the queue of packets
     ==================================================================================================
     */
 
-    
+
 
     // compile our queue of packets
     Queue packetQueue = newQueue();
@@ -275,16 +270,7 @@ int main (int argc, char* argv[]) {
 
     printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);
     
-    /*
-    for each request
-    add the correct number of packets
-for circuit
-    do routing ONCE for SHP and SDP
-    set the first packet of a request for LLP
-for packet
-    do routing for ALL SHP and SDP
-    LLP will take care of itself
-    */
+
     for(x = 0; x < rArrayCount; x++){
 
         if(DEBUG){printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);}
@@ -322,10 +308,10 @@ for packet
                     if(DEBUG){printf("first packet! leaving trigger for circuit LLP\n");}
 
                     if(strcmp(routing_scheme, "SDP")){
-                        requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
+                        requestArray[x]->circuitPath = routeSDP(temp);
                     }
                     if(strcmp(routing_scheme, "SHP")){
-                        requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
+                        requestArray[x]->circuitPath = routeSHP(temp);
                     }
                     // also we have to note for LLP that the first packet is the first here...
                     // all packets will now have pointers to the first packet
@@ -338,10 +324,10 @@ for packet
             // special: if we are in packet, just route each thing every time
             if(strcmp(network_scheme, "PACKET")){
                 if(strcmp(routing_scheme, "SDP")){
-                    temp->packetPath = routeSDP(temp, linkArray, lArrayCount);
+                    temp->packetPath = routeSDP(temp);
                 }
                 if(strcmp(routing_scheme, "SHP")){
-                    temp->packetPath = routeSHP(temp, linkArray, lArrayCount);
+                    temp->packetPath = routeSHP(temp);
                 }
                 // youll just route LLP every time mindlessly in phase 2.
             }
@@ -367,46 +353,107 @@ for packet
     // debug printing
     if(DEBUG){printAllPackets(packetQueue);}
     // loop through our queue of packets
-    if(DEBUG){printf("%d\n", totalPackets);}
+    if(DEBUG){printf("we have %d many packets processed!\n", totalPackets);}
     if(DEBUG){printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS THE GODDAMN QUEUE\n~~~~~~~~~~~~~~~~~~~~~~~~\n");}
 
+    /*
+    ==================================================================================================
+    5: Process the queue
+    ==================================================================================================
+    */
 
-/*
-
+    /*
     record all stats on the way!
-
     Packet processing
-
     if its LLP do the routing
-
     go through everything in the queue chronologically
-
     occupy the entire route, set the packet->willDie = TRUE,
     then use the function to put the packet back in the queue.
-
     if route is fully occupied, then well, i guess it fkn fails then eh
     printf eat shit and die
-
-    if you find a packet that will die
+    i you find a packet that will die
     remove the routes it is occupying
+
+    hops
+    delays
+    routes
     */
+
 
     // this loop will go through all the oncoming packets!
     while(packetQueue != NULL){
-        
-        break;
-        
-        if(strcmp(routing_scheme, "LLP")){
-            
+
+        // WE WILL ENCOUNTER TWO TYPES OF PACKETS, THAT LIVE OR DIE
+
+        // ************* LIFE **************
+        // the packet will be treated UTTERLY DIFFERENTLY if its set to be born or to die
+        // the packets are in fact, events.
+        if(packetQueue->packet->willDie == FALSE){
+
+            // ************* LLP ***************
+            // firstly, we have to do the LLP routing
+            if(strcmp(routing_scheme, "LLP")){
+                // if its circuit, then we only need one computation of the route
+                if(strcmp(network_scheme, "CIRCUIT")){
+                    // so if we encounter the first of its request, the packet shall be routed
+                    if(packetQueue->packet->first == TRUE){
+                        packetQueue->packet->source->circuitPath = routeLLP(packetQueue->packet);
+                    } 
+                    // we are always just copying the circuit path of the respective request otherwise.
+                    packetQueue->packet->packetPath = packetQueue->packet->source->circuitPath;
+                }
+                // otherwise if its packet, just mindlessly route it every time.
+                if(strcmp(network_scheme, "PACKET")){
+                    packetQueue->packet->packetPath = routeLLP(packetQueue->packet);
+                }
+            }
+
+            // ************* INCREMENT UP if we can *************
+            // now we just increase the load of the route for whatever
+            // its already been routed for the other two algorithms by the way
+            int pathClear = TRUE;
+            for(x = 0; x < packetQueue->packet->length - 1; x++){
+                int loadMax = adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad;
+                int loadCurrent = adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->maxLoad;
+                if(loadCurrent >= loadMax){
+                    // then the thing has failed!
+                    // update our stats
+
+                    // we have failed, so set to not increase everything
+                    pathClear = FALSE;
+                }
+            }
+            if(pathClear == TRUE){
+                // go through the route and load up the links each by 1
+
+            }
         }
+
+        // ************* DEATH **************
+        // dying packets must have their burden removed from the appropriate links.
+        if(packetQueue->packet->willDie == TRUE){
+            // ************** INCREMENT DOWN *****************
+            for(x = 0; packetQueue->packet->packetPath[x] != '\0'; x++){
+                // go through the route and decrement the links each by 1
+            
+            }
+        }
+
+        // update some stats
         //averageHops = ;
         //averageDelay = ;
         packetQueue = popQueue(packetQueue);
     }
     // everything is free!
-    
+
     // we're done!
-    if(DEBUG){printf("\n\nMISSSHHON COMPLEEEE!\n\n\nAftermath:\n");}
+    if(DEBUG){printf("\n\nMISSSHHON COMPLEEEE!\n\n\nDebriefing:\n");}
+
+    /*
+    ==================================================================================================
+    6: put statistics into standard output
+    ==================================================================================================
+    */
 
     // print out statistical results in standard output
     printf("total number of virtual circuit requests: %d\n", rArrayCount);
@@ -415,12 +462,35 @@ for packet
     printf("percentage of successfully routed packets: %5.2f\n", ((float)packetSuccessCounter/(float)totalPackets) * 100);
     printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
     printf("percentage of blocked packets: %.2f\n", (((float)totalPackets - (float)packetSuccessCounter)/(float)totalPackets) * 100);
-    printf("average number of hops per circuit: %.2f\n", 000000000.0);
-    printf("average cumulative propagation delay per circuit: %.2f\n", 00000000.0);
+    printf("average number of hops per circuit: %.2f\n", totalHops/totalRoutes);
+    printf("average cumulative propagation delay per circuit: %.2f\n", totalDelay/totalRoutes);
     
-    
-    
-    
+    if(DEBUG){printf("\nFox, you're becoming more like your father.\n");}
+    if(DEBUG){printf("\nFINAL MATRIX: \n");}
+    // print out adjacency matrix.
+    if(DEBUG){
+        printf("  ");
+        for(y = 0; y < 26; y++){
+            printf("%c ", y+ASCII);
+        }
+        printf("\n");
+        for(x = 0; x < 26; x++){
+            printf("%c ", x+ASCII);
+            for(y = 0; y < 26; y++){
+                if(adjMatrix[x][y] != NULL){
+                    printf("X ");
+                } else {
+                    printf("  ");
+                }
+            }
+            printf("\n");
+        }
+    }    
+    /*
+    ==================================================================================================
+    7: exit
+    ==================================================================================================
+    */
     return EXIT_SUCCESS;
 }
 
@@ -569,12 +639,15 @@ Queue addToQueue(Node node, Queue q) {
 
 Node popQueue(Queue q) {
     Node n = NULL;
+  //  z++;
+    if(DEBUG){
+  //      printf("popping queue %d\n", z);
+    }
     if (q != NULL) {
         n = q;
         q = q->next;
-    }
-    if(DEBUG){
-        printf("popped a queue\n");
+        free(n);
+        return q;
     }
     return n;
 }
@@ -618,28 +691,26 @@ Packet newPacket(Request req){
     temp->endTime = 0;
     temp->willDie = 0;
     temp->first = FALSE;
+    temp->length = 0;
     if(DEBUG){
         //printf("made a new packet\n");
     }
     return temp;
 }
 
-
-// get the link for two specific chars
-Link getLink(char end1, char end2, Link * linkArray, int lArrayCount){
-    for(x = 0; x < lArrayCount; x++){
-        if( linkArray[x]->end1 == end1 ){
-            if( linkArray[x]->end2 == end2 ){
-                return linkArray[x];
-            }
-        }
-        if( linkArray[x]->end1 == end2 ){
-            if( linkArray[x]->end2 == end1 ){
-                return linkArray[x];
-            }
-        }
+Path newPath(void){
+    Path new = malloc(sizeof(struct _path));
+    new->path = malloc(sizeof(int) * MAX_PATH_SIZE);
+    initialiseArray(new->path, MAX_PATH_SIZE);
+    new->size = 0;
+    return new;
+}
+void initialiseArray(int*array, int size){
+    int i;
+    for(i = 0; i < size; i++){
+        array[i] = -1;
     }
-    return NULL;
+    return;
 }
 
 
@@ -647,12 +718,12 @@ Link getLink(char end1, char end2, Link * linkArray, int lArrayCount){
     // have packet, have link, have size of link array
     // dont edit packets, just return the char* for it with a null terminator.
 
-int * routeSHP(Packet packet, Link link[], int lArraySize){
+int * routeSHP(Packet packet){
     return NULL;
 }
-int * routeSDP(Packet packet, Link link[], int lArraySize){
+int * routeSDP(Packet packet){
     return NULL;
 }
-int * routeLLP(Packet packet, Link link[], int lArraySize){
+int * routeLLP(Packet packet){
     return NULL;
 }
