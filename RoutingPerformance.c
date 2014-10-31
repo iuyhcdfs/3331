@@ -22,9 +22,6 @@ int packetSuccessCounter = 0;
 float averageHops = 0;
 float averageDelay = 0;
 
-// global adjacency matrix oh yes
-int adjMatrix[26][26];
-
 // to make for loops compile on cse machines LIKE WHY NOT C99 GUYS
 int x = 0;
 int y = 0;
@@ -71,6 +68,10 @@ typedef struct packet{
 typedef _packet * Packet;
 Packet newPacket(Request req);
 
+
+// global adjacency matrix oh yes
+Link adjMatrix[26][26];
+
 // nodes
 typedef struct _node {
     Packet packet;
@@ -79,8 +80,6 @@ typedef struct _node {
 typedef struct _node * Node;
 typedef struct _node * Queue;
 
-// search functions
-Link getLink(char end1, char end2, Link * linkArray, int lArrayCount);
 
 // routing algorithms to update the request circuit
 char * routeSHP(Packet packet, Link link[], int lArraySize);
@@ -110,7 +109,7 @@ int main (int argc, char* argv[]) {
     // set whole matrix to zero
     for(x = 0; x < 26; x++){
         for(y = 0; y < 26; y++){
-            adjMatrix[x][y] = 0;
+            adjMatrix[x][y] = NULL;
         }
     }
     // CIRCUIT or PACKET
@@ -181,8 +180,8 @@ int main (int argc, char* argv[]) {
         temp->maxLoad = atoi(buffer2);
         linkArray[lArrayCount] = temp;
 
-        adjMatrix[adj1][adj2] = TRUE;
-        adjMatrix[adj2][adj1] = TRUE;
+        adjMatrix[adj1][adj2] = temp;
+        adjMatrix[adj2][adj1] = temp;
 
         lArrayCount++;
     }
@@ -229,7 +228,11 @@ int main (int argc, char* argv[]) {
         for(x = 0; x < 26; x++){
             printf("%c ", x+ASCII);
             for(y = 0; y < 26; y++){
-                printf("%d ", adjMatrix[x][y]);
+                if(adjMatrix[x][y] != NULL){
+                    printf("X ");
+                } else {
+                    printf("  ");
+                }
             }
             printf("\n");
         }
@@ -239,22 +242,10 @@ int main (int argc, char* argv[]) {
     ==================================================================================================
     Things to do:
 
-but you want to do it seperate... you have to take care of multiple requests
-so youll HAVE to make a afterwards loop
 
-so the following loop must be done afterwards
-    loop -> iterate through queue of packets in time order {
-        if -> is LLP {
-            do some extra updating shit for the moment each packet gets routed (aka just before sending a packet, take its request and get a LLP route)
-        }
-        otherwise just do all the others
-        for each packet
-            if entire route = free
-            go update the packet "existing" on the links for its path, increment load on everything
-            if not then just skip the whole thing
-    }
+    get output results and print via the usual schematic
 
-    get output results and print 
+    heres a thing to copy paste
 
     if(strcmp(network_scheme, "CIRCUIT")){
                 if(strcmp(routing_scheme, "SHP")){
@@ -293,7 +284,16 @@ so the following loop must be done afterwards
 
     printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);
     
-
+    /*
+    for each request
+    add the correct number of packets
+for circuit
+    do routing ONCE for SHP and SDP
+    set the first packet of a request for LLP
+for packet
+    do routing for ALL SHP and SDP
+    LLP will take care of itself
+    */
     for(x = 0; x < rArrayCount; x++){
 
         if(DEBUG){
@@ -314,7 +314,7 @@ so the following loop must be done afterwards
             printf("********* we are going to send %d packets\n", packetsToSend);
         }
 
-        // if its the first packet
+        // WE ARE AT THE BEGINNING OF A NEW LOOP SO WE MUST SET THE FIRST PACKET TO TRUE
         int firstPacket = TRUE;
 
         // make the packets for a single request
@@ -343,7 +343,7 @@ so the following loop must be done afterwards
                     }
                     // also we have to note for LLP that the first packet is the first here...
                     // all packets will now have pointers to the first packet
-                    
+                    temp->first = TRUE;
                     firstPacket = FALSE;
                 }
                 // EVERY TIME in circuit, the original circuit path is used.
@@ -359,7 +359,6 @@ so the following loop must be done afterwards
                 }
                 // youll just route LLP every time mindlessly in phase 2.
             }
-
 
             // LLP does nothing! do this later when we know how paths are loaded
             
@@ -394,16 +393,16 @@ so the following loop must be done afterwards
     }
 
     // so then. lets make an interator and go until its null.
-    //Node navi = packetQueue;
+/*    Node navi = packetQueue;
 
-//    while(navi->next != NULL){
+    while(navi->next != NULL){
 
-//    }
+    }
 
-  //  if(strcmp(routing_scheme, "LLP")){
+    if(strcmp(routing_scheme, "LLP")){
 
-    //    }
-    // oh and do the last node as well.
+    }
+  */  // oh and do the last node as well.
     
 
     // print out statistical results in standard output
@@ -412,8 +411,8 @@ so the following loop must be done afterwards
     printf("total number of packets: %d\n", totalPackets);
     printf("number of successfully routed packets: %d\n", packetSuccessCounter);
     printf("percentage of successfully routed packets: %5.2f\n", ((float)packetSuccessCounter/(float)totalPackets) * 100);
-    //printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
-    //printf("percentage of blocked packets: %.2f\n", ( (((float)totalPackets - (float)packetSuccessCounter)/(float)totalPackets) * 100);
+    printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
+    printf("percentage of blocked packets: %.2f\n", (((float)totalPackets - (float)packetSuccessCounter)/(float)totalPackets) * 100);
     //printf("average number of hops per circuit: %.2f\n", );
     //printf("average cumulative propagation delay per circuit: %.2f\n", );
 
