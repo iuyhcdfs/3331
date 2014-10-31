@@ -17,6 +17,8 @@
 // lets set up all our statistics..
 int totalPackets = 0;
 int packetSuccessCounter = 0;
+float averageHops = 0;
+float averageDelay = 0;
 
 /*
 ==================================================================================================
@@ -299,8 +301,8 @@ so the following loop must be done afterwards
     printf("total number of packets: %d\n", totalPackets);
     printf("number of successfully routed packets: %d\n", packetSuccessCounter);
     printf("percentage of successfully routed packets: %5.2f\n", ((float)packetSuccessCounter/(float)totalPackets) * 100);
-        //printf("number of blocked packets: %d\n",    );
-        //printf("percentage of blocked packets: %.2f\n", );
+        //printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
+        //printf("percentage of blocked packets: %.2f\n", ( (((float)totalPackets - (float)packetSuccessCounter)/(float)totalPackets) * 100);
         //printf("average number of hops per circuit: %.2f\n", );
         //printf("average cumulative propagation delay per circuit: %.2f\n", );
 
