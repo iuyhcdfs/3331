@@ -12,9 +12,11 @@
 #define TRUE 1
 #define FALSE 0
 // do you want debug prints?
-#define DEBUG 1
-#define DEBUG2 1
-#define DEBUG3 1
+#define DEBUG 0
+#define DEBUG2 0
+#define DEBUG3 0
+#define DEBUG4 0
+#define DEBUGRUN 1
 // displacement of capital ASCII letters
 #define ASCII 65
 #define MAX_PATH_SIZE 28
@@ -67,6 +69,8 @@ typedef struct request{
     char destination;
     double timeToLive;
     int * circuitPath;
+    int circuitLength;
+    struct request * queueNext;
 } _request;
 typedef _request * Request;
 Request newRequest(void);
@@ -81,6 +85,7 @@ typedef struct packet{
     int first;
     int length;
     struct packet * original;
+    struct packet * queueNext;
 } _packet;
 typedef _packet * Packet;
 Packet newPacket(Request req);
@@ -101,9 +106,9 @@ typedef struct _node * Queue;
 
 
 // routing algorithms to update the request circuit
-int * routeSHP(Packet packet, Link * linkArray, int lArrayCount);
-int * routeSDP(Packet packet, Link * linkArray, int lArrayCount);
-int * routeLLP(Packet packet, Link * linkArray, int lArrayCount);
+int * routeSHP(Request request, Link * linkArray, int lArrayCount);
+int * routeSDP(Request request, Link * linkArray, int lArrayCount);
+int * routeLLP(Request request, Link * linkArray, int lArrayCount);
 
 // queue functions - implementing a priority queue
 Queue newQueue(void);
@@ -159,7 +164,7 @@ int main (int argc, char* argv[]) {
     int packet_rate = atoi(argv[5]);
 
     // ./RoutingPerformance CIRCUIT SHP topology.txt workload.txt 2 
-    if(DEBUG){printf("\n\n\n\n\n\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nBEGIN ROUTING PERFORMANCE\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    if(DEBUGRUN){printf("\n\n\n\n\n\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nBEGIN ROUTING PERFORMANCE\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
     printf("DEBUG args read: %s %s %s %s %s %d\n", argv[0], network_scheme, routing_scheme, topology_file, workload_file, packet_rate);}
 
     /*
@@ -184,7 +189,7 @@ int main (int argc, char* argv[]) {
     while(EOF != fscanf(wFile, "%[^\n]\n", buffer)){
         wCount++;
     }
-    if(DEBUG){printf("debug!: topology %d workload %d\n", tCount, wCount);}
+    if(DEBUGRUN){printf("debug!: topology %d workload %d\n", tCount, wCount);}
 
 
     /*
@@ -231,7 +236,7 @@ int main (int argc, char* argv[]) {
 
         lArrayCount++;
     }
-    if(DEBUG){printf("loaded links\n");}
+    if(DEBUGRUN){printf("loaded links\n");}
 
     // setup our requests!
     wFile = fopen(workload_file, "rt");
@@ -251,11 +256,475 @@ int main (int argc, char* argv[]) {
         rArrayCount++;
     }
 
-    if(DEBUG){printf("loaded requests\n");}
+    if(DEBUGRUN){printf("loaded requests\n");}
     // print out things 
     if(DEBUG){printAllLinks(linkArray, lArrayCount);}
     if(DEBUG){printAllRequests(requestArray, rArrayCount);}
-    if(DEBUG){printf("files read! time to add things to the queue\n");}
+    if(DEBUGRUN){printf("files read! time to add things to the queue\n");}
+
+    /*
+    ==================================================================================================
+    4 and 5: process the queue
+    assuming that packets are sent in order we may now do this in linear time
+
+    here is the steps
+    we need to process requests and iterate packets at the same time
+    for each request
+    that is when new things are inserted
+    therefore
+
+    we can process all packets added before the new request is made.
+
+    i am going to do this RIGHT.
+    ==================================================================================================
+    */
+
+    // to use additional queue pointer functionality in request, get the head
+    Request head = requestArray[0];
+
+    // do something simple for circuit, occupy all nodes for an entire request.
+    // you dont have to worry about packets.
+    // match network scheme with circuit to enter
+    if(strcmp(network_scheme, "CIRCUIT") == 0){
+
+        // initialising important things
+        
+        // looping for all requests x
+        int rIterator;
+        for(rIterator = 0; rIterator < rArrayCount; rIterator++){
+            
+            
+            
+            // detect routing algo to route properly
+            if(strcmp(routing_scheme, "SHP") == 0){
+                // take our request and get a path for it.
+                requestArray[rIterator]->circuitPath = routeSHP(requestArray[rIterator], linkArray, lArrayCount);
+            }
+            // add our request to the queue. 
+            
+            
+            // now that we're onto the next request, process whatever packets are remaining 
+            for(){
+                
+            }
+
+        }
+
+    }
+
+
+
+
+    /*
+    ==================================================================================================
+    6: put statistics into standard output
+    ==================================================================================================
+    */
+
+    // print out statistical results in standard output
+    printf("total number of virtual circuit requests: %d\n", rArrayCount);
+    printf("total number of packets: %d\n", totalPackets);
+    printf("number of successfully routed packets: %d\n", packetSuccessCounter);
+    printf("percentage of successfully routed packets: %5.2f\n", ((double)packetSuccessCounter/(double)totalPackets) * 100);
+    printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
+    printf("percentage of blocked packets: %.2f\n", (((double)totalPackets - (double)packetSuccessCounter)/(double)totalPackets) * 100);
+    printf("average number of hops per circuit: %.2f\n", totalHops/packetSuccessCounter);
+    printf("average cumulative propagation delay per circuit: %.2f\n", totalDelay/packetSuccessCounter);
+    
+    //if(DEBUG){printf("\nFox, you're becoming more like your father.\n");}
+    //if(DEBUG){printf("\nFINAL MATRIX: \n");}
+    // print out adjacency matrix.
+    /*if(DEBUG){
+        printf("  ");
+        for(y = 0; y < 26; y++){
+            printf("%c ", y+ASCII);
+        }
+        printf("\n");
+        for(x = 0; x < 26; x++){
+            printf("%c ", x+ASCII);
+            for(y = 0; y < 26; y++){
+                if(adjMatrix[x][y] != NULL){
+                    printf("X ");
+                } else {
+                    printf("  ");
+                }
+            }
+            printf("\n");
+        }
+    }  
+    */
+
+    /*
+    ==================================================================================================
+    7: exit
+    ==================================================================================================
+    */
+    return EXIT_SUCCESS;
+}
+
+
+
+
+/*
+==================================================================================================
+==================================================================================================
+==================================================================================================
+==================================================================================================
+FUNCTION IMPLEMENTATIONS
+==================================================================================================
+==================================================================================================
+==================================================================================================
+==================================================================================================
+*/
+
+
+
+
+void printAllPackets(Queue head){
+    Node temp = head;
+    while(temp->next != NULL){
+        printf("Packet\nFrom %c to %c\nStarts %f\nEnds %f\n\n",
+            temp->packet->source->origin,
+            temp->packet->source->destination,
+            temp->packet->startTime,
+            temp->packet->endTime);
+        temp = temp->next;
+    }
+    printf("Packet\nFrom %c to %c\nStarts %f\nEnds %f\n\n",
+        temp->packet->source->origin,
+        temp->packet->source->destination,
+        temp->packet->startTime,
+        temp->packet->endTime);
+}
+
+void printAllLinks(Link * linkArray, int linkSize) {
+    int i;
+    for (i=0; i < linkSize; i++) {
+        printf("\nLink %d: \n", i);
+        printf("End1:    %c\nEnd2:    %c\nDistance:%d\nmaxLoad :%d\n\n",
+            linkArray[i]->end1,
+            linkArray[i]->end2,
+            linkArray[i]->distance,
+            linkArray[i]->maxLoad);
+    }
+}
+
+void printAllRequests(Request * requestArray, int requestSize){
+    int i;
+    for (i=0; i < requestSize; i++) {
+        printf("\nRequest %d: \n", i);
+        printf("TTC:     %f\nOrigin:  %c\nDest:    %c\nTTL:     %f\n\n",
+            requestArray[i]->timeToConnect,
+            requestArray[i]->origin,
+            requestArray[i]->destination,
+            requestArray[i]->timeToLive);
+    }
+}
+
+Queue newQueue(void) {
+    return NULL;
+}
+
+Queue addToQueue(Node node, Queue q) {
+
+    // case for a completely empty queue
+    if(q == NULL){
+        //q = newNode(node->packet);
+        if(DEBUG3){
+            printf("\nadded FIRST node to queue\n");
+        }
+        node->next = NULL;
+        return node;
+    }
+
+    // comparison double
+    double comparison;
+    // determine if we're concerned with start/end time
+    if (node->packet->willDie == TRUE) {
+        comparison = node->packet->endTime;
+    } else {
+        comparison = node->packet->startTime;
+    }
+
+    if(DEBUG3){
+        printf("searching filled node queue\n");
+    }
+
+    Node current = q;
+    
+    // FOR EVERY COMPARISON MUST ACTUALLY USE IF STATEMENTS TO CHECK IF IT WILLDIE
+
+    // special case for for becoming earliest node
+    if(current->packet->willDie == FALSE){
+        if(comparison < current->packet->startTime){
+            node->next = current;
+            if(DEBUG3){
+                printf("added STARTING node to existing queue\n");
+            }
+            return node;
+        }
+    }
+    if(current->packet->willDie == TRUE){
+        if(comparison < current->packet->endTime){
+            current->next = node;
+            if(DEBUG3){
+                printf("added STARTING node to existing queue\n");
+            }
+            return current;
+        }
+    } 
+
+    // now we're looping the rest. its a bit bleh for a do while loop because we're making current become the next
+    while (current->next != NULL) {
+        // for all these remember the difference is comparison vs current-> NEXT
+        if(current->next->packet->willDie == FALSE){
+            if(comparison < current->next->packet->startTime){
+                node->next = current->next;
+                current->next = node;
+                
+                if(DEBUG3){
+                    printf("added SOME MIDDLE node to queue\n");
+                }
+                return q;
+            }
+        }
+        if(current->next->packet->willDie == TRUE){
+            if(comparison < current->next->packet->endTime){
+                node->next = current->next;
+                current->next = node;
+                if(DEBUG3){
+                    printf("added SOME MIDDLE node to queue\n");
+                }
+                return q;
+            }
+        } 
+        current = current->next;
+    }    
+    current->next = node;
+    if(DEBUG3){
+        printf("\nadded LAST node to queue\n");
+    }
+    return q;
+}
+
+Node popQueue(Queue q) {
+    Node n = NULL;
+  //  z++;
+    if(DEBUG){
+  //      printf("popping queue %d\n", z);
+    }
+    if (q != NULL) {
+        n = q;
+        q = q->next;
+        free(n);
+        return q;
+    }
+    return n;
+}
+
+Node newNode(Packet packet) {
+    Node new = malloc(sizeof(struct _node));
+    new->packet = packet;
+    new->next = NULL;
+    return new;
+}
+
+Link newLink(void){
+    Link temp = malloc(sizeof(_link));
+    temp->end1 = '0';
+    temp->end2 = '0';
+    temp->distance = 0;
+    temp->maxLoad = 0;
+    temp->currentLoad = 0;
+    if(DEBUG){
+        //printf("made a new link\n");
+    }
+    return temp;
+}
+
+Request newRequest(void){
+    Request temp = malloc(sizeof(_request));
+    temp->timeToConnect = 0;
+    temp->origin = '0';
+    temp->destination = '0';
+    temp->timeToLive = 0;
+    if(DEBUG){
+        //printf("made a new request\n");
+    }
+    return temp;
+}
+
+Packet newPacket(Request req){
+    Packet temp = malloc(sizeof(_packet));
+    temp->source = req;
+    temp->startTime = 0;
+    temp->endTime = 0;
+    temp->willDie = FALSE;
+    temp->first = FALSE;
+    temp->length = 0;
+    if(DEBUG){
+        //printf("made a new packet\n");
+    }
+    return temp;
+}
+
+Path newPath(void){
+    Path new = malloc(sizeof(path));
+    new->node = '\0';
+    new->priority = 0;
+    new->parent = NULL;
+    new->next = NULL;
+    return new;
+}
+
+// ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS, NULL if path invalid
+    // have packet, have link, have size of link array
+    // dont edit packets, just return the char* for it with a null terminator.
+
+int linkIndex(Link link, Link * linkArray, int lArrayCount){
+    int i = 0;
+    for(i = 0; i < lArrayCount; i++){
+        if(link == linkArray[i]){
+            if(DEBUG){printf("we got one at slot %d\n", i);}
+            return i;
+        }
+    }
+    //if(DEBUG){printf("didnt match anything unchecked.");}
+    return -1;
+}
+
+int * routeSHP(Request request, Link * linkArray, int lArrayCount){
+    int * finalPath = malloc(sizeof(int)*MAX_PATH_SIZE);
+    int start = request->origin - ASCII;
+    int end = request->destination - ASCII;
+    Link * unchecked = malloc(sizeof(Link)*lArrayCount);
+    // the first in the priority queue.
+    Path queue = newPath();
+    queue->node = start;
+    // no priority weight for me
+    queue->priority = 0;
+    Path tail = queue;
+    int i = 0;
+    for(i = 0; i < 26; i++){
+        finalPath[i] = -1;
+    }
+    for(i = 0; i < lArrayCount; i++){
+        unchecked[i] = linkArray[i];
+    }
+    // we got all our unchecked.
+    int dontDie = TRUE;
+    while(dontDie == TRUE){
+        // each time we get the kid we loop through to find all their neighbours
+        for(i = 0; i < 26; i++){
+            if(adjMatrix[queue->node][i] != NULL){
+                if(DEBUG){
+                    printf("\n\nthe current queue to EXPAND is at node %c\n",queue->node + ASCII);
+                    printf("now, we found a match at %c\n", i + ASCII);
+                    printf("and its a link between %c %c\n", adjMatrix[queue->node][i]->end1,adjMatrix[queue->node][i]->end2);
+                }
+                // if we find a link
+                // create a new path for it
+                // attach it to ... whos its parent
+                // then add it to the queue
+                if(-1 != linkIndex(adjMatrix[queue->node][i], unchecked, lArrayCount)){
+                    if(DEBUG){ printf("also, we havent done this before!\n");}
+
+                    // otherwise we continue the search
+                    Path temp = newPath();
+                    temp->node = i;
+                    int hops = 0;
+                    if(queue != NULL){
+                        hops = queue->priority + 1;
+                    }
+                    if(DEBUG){printf("we have %d hops for this guy\n", hops);}
+                    temp->priority = (double)hops; 
+                    temp->parent = queue;
+                    // were done if were done
+
+                    // and remove from unchecked nodes
+                    unchecked[linkIndex(adjMatrix[queue->node][i], unchecked, lArrayCount)] = NULL;
+                    if(i == end){
+                        if(DEBUG){printf("we finished. we're at %c which should be next to %c\n",queue->node + ASCII,end + ASCII);}
+                        queue = temp;
+                        dontDie = FALSE;
+                        break;
+                    }
+                    tail->next = temp;
+                    tail = temp;
+                } else if (DEBUG) {
+                    if(DEBUG){ printf("but we've already checked this one.\n");}
+                }
+            }
+        }
+        if(dontDie == TRUE){
+            if(DEBUG){printf("\ntime to try a new queue\n");}
+            //Path bleh = queue;
+            queue = queue->next;
+            //free(bleh);
+        }
+    }
+    if(DEBUG){
+        for(i = 0; i < lArrayCount; i++){
+            printf("wehave unchecked %p\n", unchecked[i]);
+        }
+    }
+
+    // so now QUEUE is the lowest child and also the solution.
+    // copy out the path backwards!
+    int hops = 0;
+    for (i = queue->priority; i >= 0; i--) {
+        if(DEBUG){printf("looping through final path: %c\n", queue->node + ASCII);}
+        finalPath[i] = queue->node;
+        queue = queue->parent;
+        hops++;
+    }
+    if(DEBUG2){printf("recorded length hops as %d\n",hops);}
+    // update the packet's hop length...
+    request->circuitLength = hops;
+    
+    if(DEBUG){
+        printf("\n\n\n\n\n\nohdear\n");
+        int papa = 0;
+        while(papa < 26){
+            printf("%d",finalPath[papa]);
+            papa++;
+        }
+        printf("\n");
+    }
+    return finalPath;
+}
+/*
+
+same as shp except change priority for the cumulative dept
+
+
+
+*/
+int * routeSDP(Request request, Link * linkArray, int lArrayCount){
+    return NULL;
+}
+
+/*
+
+same as shp except change priority for already-live-updated in-usage ratios for links
+
+*/
+int * routeLLP(Request request, Link * linkArray, int lArrayCount){
+    return NULL;
+}
+
+
+
+
+
+// graveyard
+
+
+
+
+
+
+
 
 
     /*
@@ -265,7 +734,7 @@ int main (int argc, char* argv[]) {
     */
 
 
-
+/*
     Packet firstPack = NULL;
     // compile our queue of packets
     Queue packetQueue = newQueue();
@@ -275,11 +744,11 @@ int main (int argc, char* argv[]) {
         // focus on processing every request first
         // for -> each request's index
 
-    if(DEBUG){printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);}
+    if(DEBUGRUN){printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);}
     
     for(x = 0; x < rArrayCount; x++){
 
-        if(DEBUG){printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);}
+        if(DEBUGRUN){printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);}
         // split our request into multiple packets.
         // take 1/packetRate = time per packet
         // then ceiling(time to live/time per packet) + 1 = packets to send
@@ -393,8 +862,9 @@ int main (int argc, char* argv[]) {
     // debug printing
     if(DEBUG){printAllPackets(packetQueue);}
     // loop through our queue of packets
-    if(DEBUG){printf("we have %d many packets processed!\n", totalPackets);}
-    if(DEBUG){printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS THE GODDAMN QUEUE\n~~~~~~~~~~~~~~~~~~~~~~~~\n");}
+    if(DEBUGRUN){printf("we have %d many packets processed!\n", totalPackets);}
+    if(DEBUGRUN){printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS THE GODDAMN QUEUE\n~~~~~~~~~~~~~~~~~~~~~~~~\n");}
+*/
 
     /*
     ==================================================================================================
@@ -418,10 +888,11 @@ int main (int argc, char* argv[]) {
     delays
     routes
     */
-
+/*
     // this loop will go through all the oncoming packets!
     while(packetQueue != NULL){
-        if(DEBUG){printf("\nprocessing a packet...\n");}
+        if(DEBUGRUN){printf("\nprocessing a packet... for %f to %f\n", packetQueue->packet->startTime, packetQueue->packet->endTime);}
+
         // WE WILL ENCOUNTER TWO TYPES OF PACKETS, THAT LIVE OR DIE
 
         // ************* LIFE **************
@@ -447,7 +918,6 @@ int main (int argc, char* argv[]) {
                     packetQueue->packet->packetPath = routeLLP(packetQueue->packet, linkArray, lArrayCount);
                 }
             }
-
             // ************* check if we  *************
             // now we just increase the load of the route for whatever
             // its already been routed for the other two algorithms by the way
@@ -515,445 +985,4 @@ int main (int argc, char* argv[]) {
 
     // we're done!
     if(DEBUG){printf("\n\nMISSSHHON COMPLEEEE!\n\n\nDebriefing:\n");}
-
-    /*
-    ==================================================================================================
-    6: put statistics into standard output
-    ==================================================================================================
-    */
-
-    // print out statistical results in standard output
-    printf("total number of virtual circuit requests: %d\n", rArrayCount);
-    printf("total number of packets: %d\n", totalPackets);
-    printf("number of successfully routed packets: %d\n", packetSuccessCounter);
-    printf("percentage of successfully routed packets: %5.2f\n", ((double)packetSuccessCounter/(double)totalPackets) * 100);
-    printf("number of blocked packets: %d\n", totalPackets - packetSuccessCounter);
-    printf("percentage of blocked packets: %.2f\n", (((double)totalPackets - (double)packetSuccessCounter)/(double)totalPackets) * 100);
-    printf("average number of hops per circuit: %.2f\n", totalHops/packetSuccessCounter);
-    printf("average cumulative propagation delay per circuit: %.2f\n", totalDelay/packetSuccessCounter);
-    
-    //if(DEBUG){printf("\nFox, you're becoming more like your father.\n");}
-    //if(DEBUG){printf("\nFINAL MATRIX: \n");}
-    // print out adjacency matrix.
-    /*if(DEBUG){
-        printf("  ");
-        for(y = 0; y < 26; y++){
-            printf("%c ", y+ASCII);
-        }
-        printf("\n");
-        for(x = 0; x < 26; x++){
-            printf("%c ", x+ASCII);
-            for(y = 0; y < 26; y++){
-                if(adjMatrix[x][y] != NULL){
-                    printf("X ");
-                } else {
-                    printf("  ");
-                }
-            }
-            printf("\n");
-        }
-    }  
-    */
-
-    /*
-    ==================================================================================================
-    7: exit
-    ==================================================================================================
-    */
-    return EXIT_SUCCESS;
-}
-
-
-
-
-/*
-==================================================================================================
-==================================================================================================
-==================================================================================================
-==================================================================================================
-FUNCTION IMPLEMENTATIONS
-==================================================================================================
-==================================================================================================
-==================================================================================================
-==================================================================================================
 */
-
-
-
-
-void printAllPackets(Queue head){
-    Node temp = head;
-    while(temp->next != NULL){
-        printf("Packet\nFrom %c to %c\nStarts %f\nEnds %f\n\n",
-            temp->packet->source->origin,
-            temp->packet->source->destination,
-            temp->packet->startTime,
-            temp->packet->endTime);
-        temp = temp->next;
-    }
-    printf("Packet\nFrom %c to %c\nStarts %f\nEnds %f\n\n",
-        temp->packet->source->origin,
-        temp->packet->source->destination,
-        temp->packet->startTime,
-        temp->packet->endTime);
-}
-
-void printAllLinks(Link * linkArray, int linkSize) {
-    int i;
-    for (i=0; i < linkSize; i++) {
-        printf("\nLink %d: \n", i);
-        printf("End1:    %c\nEnd2:    %c\nDistance:%d\nmaxLoad :%d\n\n",
-            linkArray[i]->end1,
-            linkArray[i]->end2,
-            linkArray[i]->distance,
-            linkArray[i]->maxLoad);
-    }
-}
-
-void printAllRequests(Request * requestArray, int requestSize){
-    int i;
-    for (i=0; i < requestSize; i++) {
-        printf("\nRequest %d: \n", i);
-        printf("TTC:     %f\nOrigin:  %c\nDest:    %c\nTTL:     %f\n\n",
-            requestArray[i]->timeToConnect,
-            requestArray[i]->origin,
-            requestArray[i]->destination,
-            requestArray[i]->timeToLive);
-    }
-}
-
-Queue newQueue(void) {
-    return NULL;
-}
-
-Queue addToQueue(Node node, Queue q) {
-    double comparison;
-
-    // case for a completely empty queue
-    if(q == NULL){
-        q = newNode(node->packet);
-        if(DEBUG3){
-            printf("\nadded FIRST node to queue\n");
-        }
-        return q;
-    }
-
-    // determine if we're concerned with start/end time
-    if (node->packet->willDie == TRUE) {
-        comparison = node->packet->endTime;
-    } else {
-        comparison = node->packet->startTime;
-    }
-
-    if(DEBUG3){
-        printf("searching filled node queue\n");
-    }
-
-    Node current = q;
-    
-    // FOR EVERY COMPARISON MUST ACTUALLY USE IF STATEMENTS TO CHECK IF IT WILLDIE
-
-    // special case for for becoming earliest node
-    if(current->packet->willDie == FALSE){
-        if(comparison < current->packet->startTime){
-            node->next = current;
-            if(DEBUG3){
-                printf("added STARTING node to existing queue\n");
-            }
-            return node;
-        }
-    }
-    if(current->packet->willDie == TRUE){
-        if(comparison < current->packet->endTime){
-            node->next = current;
-            if(DEBUG3){
-                printf("added STARTING node to existing queue\n");
-            }
-            return node;
-        }
-    } 
-
-    // now we're looping the rest. its a bit bleh for a do while loop because we're making current become the next
-    while (current->next != NULL) {
-
-        // for all these remember the difference is comparison vs current-> NEXT
-        if(current->packet->willDie == FALSE){
-            if(comparison <= current->next->packet->startTime){
-                node->next = current->next;
-                current->next = node;
-                if(DEBUG3){
-                    printf("added SOME MIDDLE node to queue\n");
-                }
-                return q;
-            }
-        }
-        if(current->packet->willDie == TRUE){
-            if(comparison <= current->next->packet->endTime){
-                node->next = current->next;
-                current->next = node;
-                if(DEBUG3){
-                    printf("added SOME MIDDLE node to queue\n");
-                }
-                return q;
-            }
-        } 
-        current = current->next;
-    }    
-    current->next = node;
-    if(DEBUG3){
-        printf("\nadded LAST node to queue\n");
-    }
-    return q;
-}
-
-Node popQueue(Queue q) {
-    Node n = NULL;
-  //  z++;
-    if(DEBUG){
-  //      printf("popping queue %d\n", z);
-    }
-    if (q != NULL) {
-        n = q;
-        q = q->next;
-        //free(n);
-        return q;
-    }
-    return n;
-}
-
-Node newNode(Packet packet) {
-    Node new = malloc(sizeof(struct _node));
-    new->packet = packet;
-    new->next = NULL;
-    return new;
-}
-
-Link newLink(void){
-    Link temp = malloc(sizeof(_link));
-    temp->end1 = '0';
-    temp->end2 = '0';
-    temp->distance = 0;
-    temp->maxLoad = 0;
-    temp->currentLoad = 0;
-    if(DEBUG){
-        //printf("made a new link\n");
-    }
-    return temp;
-}
-
-Request newRequest(void){
-    Request temp = malloc(sizeof(_request));
-    temp->timeToConnect = 0;
-    temp->origin = '0';
-    temp->destination = '0';
-    temp->timeToLive = 0;
-    if(DEBUG){
-        //printf("made a new request\n");
-    }
-    return temp;
-}
-
-Packet newPacket(Request req){
-    Packet temp = malloc(sizeof(_packet));
-    temp->source = req;
-    temp->startTime = 0;
-    temp->endTime = 0;
-    temp->willDie = FALSE;
-    temp->first = FALSE;
-    temp->length = 0;
-    if(DEBUG){
-        //printf("made a new packet\n");
-    }
-    return temp;
-}
-
-Path newPath(void){
-    Path new = malloc(sizeof(path));
-    new->node = '\0';
-    new->priority = 0;
-    new->parent = NULL;
-    new->next = NULL;
-    return new;
-}
-
-// ALGORITHMS FOR ROUTING PACKETS OR CIRCUITS, NULL if path invalid
-    // have packet, have link, have size of link array
-    // dont edit packets, just return the char* for it with a null terminator.
-
-int linkIndex(Link link, Link * linkArray, int lArrayCount){
-    int i = 0;
-    for(i = 0; i < lArrayCount; i++){
-        if(link == linkArray[i]){
-            if(DEBUG){printf("we got one at slot %d\n", i);}
-            return i;
-        }
-    }
-    //if(DEBUG){printf("didnt match anything unchecked.");}
-    return -1;
-}
-
-int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
-
-    int * finalPath = malloc(sizeof(int)*MAX_PATH_SIZE);
-    
-
-    int start = packet->source->origin - ASCII;
-    int end = packet->source->destination - ASCII;
-
-    // we have the adjmatrix
-    // we want the route obviously
-    // with the starting node we
-    // pass through to build list of all neighbours
-    
-    /*
-    get list of neighbours for current node from unchecked
-    repeat until you pick end node
-    */
-
-    Link * unchecked = malloc(sizeof(Link)*lArrayCount);
-
-    // the first in the priority queue.
-    Path queue = newPath();
-    queue->node = start;
-    // no priority weight for me
-    queue->priority = 0;
-    Path tail = queue;
-
-    int i = 0;
-    for(i = 0; i < 26; i++){
-        finalPath[i] = -1;
-    }
-    for(i = 0; i < lArrayCount; i++){
-        unchecked[i] = linkArray[i];
-    }
-
-    // we got all our unchecked.
-    int dontDie = TRUE;
-    while(dontDie == TRUE){
-        // each time we get the kid we loop through to find all their neighbours
-        for(i = 0; i < 26; i++){
-            if(adjMatrix[queue->node][i] != NULL){
-                if(DEBUG){
-                    printf("\n\nthe current queue to EXPAND is at node %c\n",queue->node + ASCII);
-                    printf("now, we found a match at %c\n", i + ASCII);
-                    printf("and its a link between %c %c\n", adjMatrix[queue->node][i]->end1,adjMatrix[queue->node][i]->end2);
-                }
-                // if we find a link
-                // create a new path for it
-                // attach it to ... whos its parent
-                // then add it to the queue
-                if(-1 != linkIndex(adjMatrix[queue->node][i], unchecked, lArrayCount)){
-                    if(DEBUG){ printf("also, we havent done this before!\n");}
-
-                    // otherwise we continue the search
-                    Path temp = newPath();
-                    temp->node = i;
-                    int hops = 0;
-                    if(queue != NULL){
-                        hops = queue->priority + 1;
-                    }
-                    if(DEBUG){printf("we have %d hops for this guy\n", hops);}
-                    temp->priority = (double)hops; 
-                    temp->parent = queue;
-                    // were done if were done
-
-                    // and remove from unchecked nodes
-                    unchecked[linkIndex(adjMatrix[queue->node][i], unchecked, lArrayCount)] = NULL;
-                    if(i == end){
-                        if(DEBUG){printf("we finished. we're at %c which should be next to %c\n",queue->node + ASCII,end + ASCII);}
-                        queue = temp;
-                        dontDie = FALSE;
-                        break;
-                    }
-                    tail->next = temp;
-                    tail = temp;
-                } else if (DEBUG) {
-                    if(DEBUG){ printf("but we've already checked this one.\n");}
-                }
-            }
-        }
-        if(dontDie == TRUE){
-            if(DEBUG){printf("\ntime to try a new queue\n");}
-            //Path bleh = queue;
-            queue = queue->next;
-            //free(bleh);
-        }
-    }
-    if(DEBUG){
-        for(i = 0; i < lArrayCount; i++){
-            printf("wehave unchecked %p\n", unchecked[i]);
-        }
-    }
-
-    // so now QUEUE is the lowest child and also the solution.
-    // copy out the path backwards!
-    int hops = 0;
-    for (i = queue->priority; i >= 0; i--) {
-        if(DEBUG){printf("looping through final path: %c\n", queue->node + ASCII);}
-        finalPath[i] = queue->node;
-        queue = queue->parent;
-        hops++;
-    }
-    if(DEBUG2){printf("recorded length hops as %d\n",hops);}
-    // update the packet's hop length...
-    packet->length = hops;
-    
-    if(DEBUG){
-        printf("\n\n\n\n\n\nohdear\n");
-        int papa = 0;
-        while(papa < 26){
-            printf("%d",finalPath[papa]);
-            papa++;
-        }
-        printf("\n");
-    }
-    return finalPath;
-}
-/*
-
-
-
-
-
-
-
-same as shp except change priority for the cumulative depth
-
-
-
-
-
-
-
-
-
-
-
-*/
-int * routeSDP(Packet packet, Link * linkArray, int lArrayCount){
-    return NULL;
-}
-
-/*
-
-
-
-
-
-same as shp except change priority for already-live-updated in-usage ratios for links
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-int * routeLLP(Packet packet, Link * linkArray, int lArrayCount){
-    return NULL;
-}
