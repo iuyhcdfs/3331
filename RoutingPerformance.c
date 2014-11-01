@@ -14,8 +14,8 @@
 // do you want debug prints?
 #define DEBUG 0
 #define DEBUG2 0
-#define DEBUG3 0
-#define DEBUG4 0
+#define DEBUG3 1
+#define DEBUG4 1
 #define DEBUGRUN 1
 // displacement of capital ASCII letters
 #define ASCII 65
@@ -547,7 +547,7 @@ int main (int argc, char* argv[]) {
     */
 
     // print out statistical results in standard output
-    printf("total number of virtual circuit requests: %d\n", rArrayCount);
+    printf("\n\ntotal number of virtual circuit requests: %d\n", rArrayCount);
     printf("total number of packets: %d\n", totalPackets);
     printf("number of successfully routed packets: %d\n", packetSuccessCounter);
     printf("percentage of successfully routed packets: %5.2f\n", ((double)packetSuccessCounter/(double)totalPackets) * 100);
