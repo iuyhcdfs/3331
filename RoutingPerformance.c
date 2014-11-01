@@ -106,9 +106,9 @@ typedef struct _node * Queue;
 
 
 // routing algorithms to update the request circuit
-int * routeSHP(Request request, Link * linkArray, int lArrayCount);
-int * routeSDP(Request request, Link * linkArray, int lArrayCount);
-int * routeLLP(Request request, Link * linkArray, int lArrayCount);
+int * routeSHP(Packet packet, Link * linkArray, int lArrayCount);
+int * routeSDP(Packet packet, Link * linkArray, int lArrayCount);
+int * routeLLP(Packet packet, Link * linkArray, int lArrayCount);
 
 // queue functions - implementing a priority queue
 Queue newQueue(void);
@@ -279,39 +279,264 @@ int main (int argc, char* argv[]) {
     ==================================================================================================
     */
 
-    // to use additional queue pointer functionality in request, get the head
-    Request head = requestArray[0];
 
-    // do something simple for circuit, occupy all nodes for an entire request.
-    // you dont have to worry about packets.
-    // match network scheme with circuit to enter
-    if(strcmp(network_scheme, "CIRCUIT") == 0){
+    /*
+    ==================================================================================================
+    4: add the queue of packets
+    ==================================================================================================
+    */
 
-        // initialising important things
-        
-        // looping for all requests x
-        int rIterator;
-        for(rIterator = 0; rIterator < rArrayCount; rIterator++){
-            
-            
-            
-            // detect routing algo to route properly
-            if(strcmp(routing_scheme, "SHP") == 0){
-                // take our request and get a path for it.
-                requestArray[rIterator]->circuitPath = routeSHP(requestArray[rIterator], linkArray, lArrayCount);
+
+
+    Packet firstPack = NULL;
+    // compile our queue of packets
+    Queue packetQueue = newQueue();
+    // packet rate is packets per second, change to seconds per packet
+    double secondsPerPacket =  (double)1.0/packet_rate;
+    if(DEBUG){printf("we send a packet every %f seconds!\n", secondsPerPacket);}
+        // focus on processing every request first
+        // for -> each request's index
+
+    if(DEBUGRUN){printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);}
+    
+    for(x = 0; x < rArrayCount; x++){
+
+        if(DEBUGRUN){printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);}
+        // split our request into multiple packets.
+        // take 1/packetRate = time per packet
+        // then ceiling(time to live/time per packet) + 1 = packets to send
+        // queue up packets per increment of time per packet from beginnin time.
+
+        // figure out number of packets to send PER REQUEST, do all but the last one
+        int packetsToSend = ceil((requestArray[x]->timeToLive) / secondsPerPacket);
+        // add to total amount of packets
+        totalPackets += packetsToSend;
+
+        if(DEBUG){printf("********* we are going to send %d packets\n", packetsToSend);}
+
+        // WE ARE AT THE BEGINNING OF A NEW LOOP SO WE MUST SET THE FIRST PACKET TO TRUE
+        int firstPacket = TRUE;
+        // make the packets for a single request
+        for(y = 1; y < packetsToSend; y++){
+
+            if(DEBUG){printf("\n================\nY loop iteration %d\n================\n", y);}
+
+            Packet temp = newPacket(requestArray[x]);
+            temp->startTime = requestArray[x]->timeToConnect + (((double)y-1) * secondsPerPacket);
+            temp->endTime = requestArray[x]->timeToConnect + ((double)y * secondsPerPacket); 
+            temp->willDie = FALSE;
+            if(DEBUG){printf("ROUTING SDP OR SHP, and adding packet for this request\n");}
+            // special: if we are circuit, each request is on the same circuit! figure out the route NOW.
+            if(0 == strcmp(network_scheme, "CIRCUIT")){
+                if(firstPacket == TRUE){
+
+                    if(DEBUG){printf("first packet! leaving trigger for circuit LLP\n");}
+
+                    if(0 == strcmp(routing_scheme, "SDP")){
+                        requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
+                    }
+                    if(0 == strcmp(routing_scheme, "SHP")){
+                        requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
+                    }
+                    // also we have to note for LLP that the first packet is the first here...
+                    // all packets will now have pointers to the first packet
+                    temp->first = TRUE;
+                    firstPacket = FALSE;
+                    firstPack = temp;
+                }
+                // EVERY TIME in circuit, the original circuit path is used.
+                temp->original = firstPack;
+                temp->length = temp->original->length;
+                temp->packetPath = requestArray[x]->circuitPath;
             }
-            // add our request to the queue. 
-            
-            
-            // now that we're onto the next request, process whatever packets are remaining 
-            for(){
-                
+            // special: if we are in packet, just route each thing every time
+            if(0 == strcmp(network_scheme, "PACKET")){
+                if(0 == strcmp(routing_scheme, "SDP")){
+                    temp->packetPath = routeSDP(temp, linkArray, lArrayCount);
+                }
+                if(0 == strcmp(routing_scheme, "SHP")){
+                    temp->packetPath = routeSHP(temp, linkArray, lArrayCount);
+                }
+                // youll just route LLP every time mindlessly in phase 2.
             }
+            // LLP does nothing! do this later when we know how paths are loaded
 
+            // then add the things to the queue
+            packetQueue = addToQueue(newNode(temp), packetQueue);
         }
 
+        if(DEBUG){printf("=========\nexited y loop\n=========\n");}
+
+        // do the last packet.. it might be truncated early. it might not. cant loop this one. 
+
+        Packet temp = newPacket(requestArray[x]);
+        temp->startTime = requestArray[x]->timeToConnect + (packetsToSend-1)*secondsPerPacket;
+        temp->endTime = requestArray[x]->timeToConnect + requestArray[x]->timeToLive;
+        temp->willDie = FALSE;
+
+        // STILL NEED TO ROUTE LAST PACKET BLARRGH
+        if(0 == strcmp(network_scheme, "CIRCUIT")){
+            if(firstPacket == TRUE){
+
+                if(DEBUG){printf("first packet! also the last! leaving trigger for circuit LLP\n");}
+
+                if(0 == strcmp(routing_scheme, "SDP")){
+                    requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
+                    
+                }
+                if(0 == strcmp(routing_scheme, "SHP")){
+                    requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
+
+                }
+                temp->first = TRUE;
+                firstPacket = FALSE;
+                firstPack = temp;
+                
+                temp->original = firstPack;
+                temp->packetPath = requestArray[x]->circuitPath;
+            }
+                // EVERY TIME in circuit, the original circuit path is used.
+        }
+            // special: if we are in packet, just route each thing every time
+        if(0 == strcmp(network_scheme, "PACKET")){
+            if(0 == strcmp(routing_scheme, "SDP")){
+                temp->packetPath = routeSDP(temp, linkArray, lArrayCount);
+            }
+            if(0 == strcmp(routing_scheme, "SHP")){
+                temp->packetPath = routeSHP(temp, linkArray, lArrayCount);
+            }
+                // youll just route LLP every time mindlessly in phase 2.
+        }
+
+        if(DEBUG){printf("adding last packet for this request\n");}
+        packetQueue = addToQueue(newNode(temp), packetQueue);
     }
 
+    // debug printing
+    if(DEBUG){printAllPackets(packetQueue);}
+    // loop through our queue of packets
+    if(DEBUGRUN){printf("we have %d many packets processed!\n", totalPackets);}
+    if(DEBUGRUN){printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS THE GODDAMN QUEUE\n~~~~~~~~~~~~~~~~~~~~~~~~\n");}
+
+
+    /*
+    ==================================================================================================
+    5: Process the queue
+    ==================================================================================================
+    */
+
+    /*
+    record all stats on the way!
+    Packet processing
+    if its LLP do the routing
+    go through everything in the queue chronologically
+    occupy the entire route, set the packet->willDie = TRUE,
+    then use the function to put the packet back in the queue.
+    if route is fully occupied, then well, i guess it fkn fails then eh
+    if you find a packet that will die
+    remove the routes it is occupying
+
+    hops
+    delays
+    routes
+    */
+
+    // this loop will go through all the oncoming packets!
+    while(packetQueue != NULL){
+        if(DEBUGRUN){printf("\nprocessing a packet... for %f to %f\n", packetQueue->packet->startTime, packetQueue->packet->endTime);}
+
+        // WE WILL ENCOUNTER TWO TYPES OF PACKETS, THAT LIVE OR DIE
+
+        // ************* LIFE **************
+        // the packet will be treated UTTERLY DIFFERENTLY if its set to be born or to die
+        // the packets are in fact, events.
+        
+        if(packetQueue->packet->willDie == FALSE){
+            if(DEBUG){printf("processing a live packet...\n");}
+            // ************* LLP ***************
+            // firstly, we have to do the LLP routing
+            if(0 == strcmp(routing_scheme, "LLP")){
+                // if its circuit, then we only need one computation of the route
+                if(0 == strcmp(network_scheme, "CIRCUIT")){
+                    // so if we encounter the first of its request, the packet shall be routed
+                    if(packetQueue->packet->first == TRUE){
+                        packetQueue->packet->source->circuitPath = routeLLP(packetQueue->packet, linkArray, lArrayCount);
+                    } 
+                    // we are always just copying the circuit path of the respective request otherwise.
+                    packetQueue->packet->packetPath = packetQueue->packet->source->circuitPath;
+                }
+                // otherwise if its packet, just mindlessly route it every time.
+                if(0 == strcmp(network_scheme, "PACKET")){
+                    packetQueue->packet->packetPath = routeLLP(packetQueue->packet, linkArray, lArrayCount);
+                }
+            }
+            // ************* check if we  *************
+            // now we just increase the load of the route for whatever
+            // its already been routed for the other two algorithms by the way
+            int pathClear = TRUE;
+            for(x = 0; x < packetQueue->packet->length - 1; x++){
+                int loadMax = adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->maxLoad;
+                int loadCurrent = adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad;
+                if(DEBUG){printf("loadmax was %d and current load was %d...\n",loadMax,loadCurrent);}
+                if(loadCurrent >= loadMax){
+                    if(DEBUG){printf("packet failed!\n");}
+                    // then the thing has failed!
+                    // we have failed, so set to not increase everything
+                    pathClear = FALSE;
+                    break;
+                }
+            }
+            if(pathClear == TRUE){
+                // a packet succeeded! INCREMENT THE COUNTER
+                if(DEBUG){printf("packet routed!\n");}
+                packetSuccessCounter++;
+                if(DEBUG){printf("is our length meant to be %d\n",packetQueue->packet->length);}
+                // go through the route and load up the links each by 1
+                // add up the total delay and the number hops to the global numbers while youre at it
+            // ************* INCREMENT UP if we can *************
+                for(x = 0; x + 1 < packetQueue->packet->length; x++){
+                    // so now were going through the packet's path
+                    // and we're updating the links
+                    if(DEBUG2){printf("now incrementing the load of link between %c and %c\n",packetQueue->packet->packetPath[x] + ASCII,packetQueue->packet->packetPath[x+1] + ASCII);}
+                    adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad++;
+                    if(DEBUG2){printf("current load is %d\n",adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad);}
+                    // update stats
+                    totalDelay += adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->distance;
+                }
+                // update stats
+                totalHops += packetQueue->packet->length;
+                // once we've added this, we have to add the packet's kill time to the queue...
+
+                Node blahh = newNode(packetQueue->packet);
+                blahh->next = NULL;
+                packetQueue = addToQueue(blahh, packetQueue);
+                blahh->packet->willDie = TRUE;
+            }
+        }
+
+        // ************* DEATH **************
+        // dying packets must have their burden removed from the appropriate links.
+        else if(packetQueue->packet->willDie == TRUE){
+
+//            if(DEBUG){printf("shit\n");}
+            if(DEBUG){printf("killing a packet!\n");}
+            // ************** INCREMENT DOWN EACH LINK *****************
+            for(x = 0; x + 1 < packetQueue->packet->length; x++){
+                    // so now were going through the packet's path
+                    // and we're updating the links
+                if(DEBUG){printf("now DECREASING the load of link between %c and %c\n",packetQueue->packet->packetPath[x] + ASCII,packetQueue->packet->packetPath[x+1] + ASCII);}
+                adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad--;
+                if(DEBUG2){
+                    printf("current load %d\n", adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad);
+                }
+            }
+        }
+        packetQueue = popQueue(packetQueue);
+    }
+    // everything is free!
+
+    // we're done!
+    if(DEBUG){printf("\n\nMISSSHHON COMPLEEEE!\n\n\nDebriefing:\n");}
 
 
 
@@ -593,10 +818,10 @@ int linkIndex(Link link, Link * linkArray, int lArrayCount){
     return -1;
 }
 
-int * routeSHP(Request request, Link * linkArray, int lArrayCount){
+int * routeSHP(Packet packet, Link * linkArray, int lArrayCount){
     int * finalPath = malloc(sizeof(int)*MAX_PATH_SIZE);
-    int start = request->origin - ASCII;
-    int end = request->destination - ASCII;
+    int start = packet->source->origin - ASCII;
+    int end = packet->source->destination - ASCII;
     Link * unchecked = malloc(sizeof(Link)*lArrayCount);
     // the first in the priority queue.
     Path queue = newPath();
@@ -680,7 +905,7 @@ int * routeSHP(Request request, Link * linkArray, int lArrayCount){
     }
     if(DEBUG2){printf("recorded length hops as %d\n",hops);}
     // update the packet's hop length...
-    request->circuitLength = hops;
+    packet->length = hops;
     
     if(DEBUG){
         printf("\n\n\n\n\n\nohdear\n");
@@ -700,7 +925,7 @@ same as shp except change priority for the cumulative dept
 
 
 */
-int * routeSDP(Request request, Link * linkArray, int lArrayCount){
+int * routeSDP(Packet packet, Link * linkArray, int lArrayCount){
     return NULL;
 }
 
@@ -709,7 +934,7 @@ int * routeSDP(Request request, Link * linkArray, int lArrayCount){
 same as shp except change priority for already-live-updated in-usage ratios for links
 
 */
-int * routeLLP(Request request, Link * linkArray, int lArrayCount){
+int * routeLLP(Packet packet, Link * linkArray, int lArrayCount){
     return NULL;
 }
 
@@ -726,263 +951,3 @@ int * routeLLP(Request request, Link * linkArray, int lArrayCount){
 
 
 
-
-    /*
-    ==================================================================================================
-    4: add the queue of packets
-    ==================================================================================================
-    */
-
-
-/*
-    Packet firstPack = NULL;
-    // compile our queue of packets
-    Queue packetQueue = newQueue();
-    // packet rate is packets per second, change to seconds per packet
-    double secondsPerPacket =  (double)1.0/packet_rate;
-    if(DEBUG){printf("we send a packet every %f seconds!\n", secondsPerPacket);}
-        // focus on processing every request first
-        // for -> each request's index
-
-    if(DEBUGRUN){printf("THERE ARE %d MANY REQUESTS\n", rArrayCount);}
-    
-    for(x = 0; x < rArrayCount; x++){
-
-        if(DEBUGRUN){printf("\n\n\n\n\n==========================================\nRequest loop iteration %d\n==========================================\n", x+1);}
-        // split our request into multiple packets.
-        // take 1/packetRate = time per packet
-        // then ceiling(time to live/time per packet) + 1 = packets to send
-        // queue up packets per increment of time per packet from beginnin time.
-
-        // figure out number of packets to send PER REQUEST, do all but the last one
-        int packetsToSend = ceil((requestArray[x]->timeToLive) / secondsPerPacket);
-        // add to total amount of packets
-        totalPackets += packetsToSend;
-
-        if(DEBUG){printf("********* we are going to send %d packets\n", packetsToSend);}
-
-        // WE ARE AT THE BEGINNING OF A NEW LOOP SO WE MUST SET THE FIRST PACKET TO TRUE
-        int firstPacket = TRUE;
-        // make the packets for a single request
-        for(y = 1; y < packetsToSend; y++){
-
-            if(DEBUG){printf("\n================\nY loop iteration %d\n================\n", y);}
-
-            Packet temp = newPacket(requestArray[x]);
-            temp->startTime = requestArray[x]->timeToConnect + (((double)y-1) * secondsPerPacket);
-            temp->endTime = requestArray[x]->timeToConnect + ((double)y * secondsPerPacket); 
-            temp->willDie = FALSE;
-            if(DEBUG){printf("ROUTING SDP OR SHP, and adding packet for this request\n");}
-            // special: if we are circuit, each request is on the same circuit! figure out the route NOW.
-            if(0 == strcmp(network_scheme, "CIRCUIT")){
-                if(firstPacket == TRUE){
-
-                    if(DEBUG){printf("first packet! leaving trigger for circuit LLP\n");}
-
-                    if(0 == strcmp(routing_scheme, "SDP")){
-                        requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
-                    }
-                    if(0 == strcmp(routing_scheme, "SHP")){
-                        requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
-                    }
-                    // also we have to note for LLP that the first packet is the first here...
-                    // all packets will now have pointers to the first packet
-                    temp->first = TRUE;
-                    firstPacket = FALSE;
-                    firstPack = temp;
-                }
-                // EVERY TIME in circuit, the original circuit path is used.
-                temp->original = firstPack;
-                temp->length = temp->original->length;
-                temp->packetPath = requestArray[x]->circuitPath;
-            }
-            // special: if we are in packet, just route each thing every time
-            if(0 == strcmp(network_scheme, "PACKET")){
-                if(0 == strcmp(routing_scheme, "SDP")){
-                    temp->packetPath = routeSDP(temp, linkArray, lArrayCount);
-                }
-                if(0 == strcmp(routing_scheme, "SHP")){
-                    temp->packetPath = routeSHP(temp, linkArray, lArrayCount);
-                }
-                // youll just route LLP every time mindlessly in phase 2.
-            }
-            // LLP does nothing! do this later when we know how paths are loaded
-
-            // then add the things to the queue
-            packetQueue = addToQueue(newNode(temp), packetQueue);
-        }
-
-        if(DEBUG){printf("=========\nexited y loop\n=========\n");}
-
-        // do the last packet.. it might be truncated early. it might not. cant loop this one. 
-
-        Packet temp = newPacket(requestArray[x]);
-        temp->startTime = requestArray[x]->timeToConnect + (packetsToSend-1)*secondsPerPacket;
-        temp->endTime = requestArray[x]->timeToConnect + requestArray[x]->timeToLive;
-        temp->willDie = FALSE;
-
-        // STILL NEED TO ROUTE LAST PACKET BLARRGH
-        if(0 == strcmp(network_scheme, "CIRCUIT")){
-            if(firstPacket == TRUE){
-
-                if(DEBUG){printf("first packet! also the last! leaving trigger for circuit LLP\n");}
-
-                if(0 == strcmp(routing_scheme, "SDP")){
-                    requestArray[x]->circuitPath = routeSDP(temp, linkArray, lArrayCount);
-                    
-                }
-                if(0 == strcmp(routing_scheme, "SHP")){
-                    requestArray[x]->circuitPath = routeSHP(temp, linkArray, lArrayCount);
-
-                }
-                temp->first = TRUE;
-                firstPacket = FALSE;
-                firstPack = temp;
-                
-                temp->original = firstPack;
-                temp->packetPath = requestArray[x]->circuitPath;
-            }
-                // EVERY TIME in circuit, the original circuit path is used.
-        }
-            // special: if we are in packet, just route each thing every time
-        if(0 == strcmp(network_scheme, "PACKET")){
-            if(0 == strcmp(routing_scheme, "SDP")){
-                temp->packetPath = routeSDP(temp, linkArray, lArrayCount);
-            }
-            if(0 == strcmp(routing_scheme, "SHP")){
-                temp->packetPath = routeSHP(temp, linkArray, lArrayCount);
-            }
-                // youll just route LLP every time mindlessly in phase 2.
-        }
-
-        if(DEBUG){printf("adding last packet for this request\n");}
-        packetQueue = addToQueue(newNode(temp), packetQueue);
-    }
-
-    // debug printing
-    if(DEBUG){printAllPackets(packetQueue);}
-    // loop through our queue of packets
-    if(DEBUGRUN){printf("we have %d many packets processed!\n", totalPackets);}
-    if(DEBUGRUN){printf("~~~~~~~~~~~~~~~~~~~~~~~~\nLETS PROCESS THE GODDAMN QUEUE\n~~~~~~~~~~~~~~~~~~~~~~~~\n");}
-*/
-
-    /*
-    ==================================================================================================
-    5: Process the queue
-    ==================================================================================================
-    */
-
-    /*
-    record all stats on the way!
-    Packet processing
-    if its LLP do the routing
-    go through everything in the queue chronologically
-    occupy the entire route, set the packet->willDie = TRUE,
-    then use the function to put the packet back in the queue.
-    if route is fully occupied, then well, i guess it fkn fails then eh
-    printf eat shit and die
-    i you find a packet that will die
-    remove the routes it is occupying
-
-    hops
-    delays
-    routes
-    */
-/*
-    // this loop will go through all the oncoming packets!
-    while(packetQueue != NULL){
-        if(DEBUGRUN){printf("\nprocessing a packet... for %f to %f\n", packetQueue->packet->startTime, packetQueue->packet->endTime);}
-
-        // WE WILL ENCOUNTER TWO TYPES OF PACKETS, THAT LIVE OR DIE
-
-        // ************* LIFE **************
-        // the packet will be treated UTTERLY DIFFERENTLY if its set to be born or to die
-        // the packets are in fact, events.
-        
-        if(packetQueue->packet->willDie == FALSE){
-            if(DEBUG){printf("processing a live packet...\n");}
-            // ************* LLP ***************
-            // firstly, we have to do the LLP routing
-            if(0 == strcmp(routing_scheme, "LLP")){
-                // if its circuit, then we only need one computation of the route
-                if(0 == strcmp(network_scheme, "CIRCUIT")){
-                    // so if we encounter the first of its request, the packet shall be routed
-                    if(packetQueue->packet->first == TRUE){
-                        packetQueue->packet->source->circuitPath = routeLLP(packetQueue->packet, linkArray, lArrayCount);
-                    } 
-                    // we are always just copying the circuit path of the respective request otherwise.
-                    packetQueue->packet->packetPath = packetQueue->packet->source->circuitPath;
-                }
-                // otherwise if its packet, just mindlessly route it every time.
-                if(0 == strcmp(network_scheme, "PACKET")){
-                    packetQueue->packet->packetPath = routeLLP(packetQueue->packet, linkArray, lArrayCount);
-                }
-            }
-            // ************* check if we  *************
-            // now we just increase the load of the route for whatever
-            // its already been routed for the other two algorithms by the way
-            int pathClear = TRUE;
-            for(x = 0; x < packetQueue->packet->length - 1; x++){
-                int loadMax = adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->maxLoad;
-                int loadCurrent = adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad;
-                if(DEBUG){printf("loadmax was %d and current load was %d...\n",loadMax,loadCurrent);}
-                if(loadCurrent >= loadMax){
-                    if(DEBUG){printf("packet failed!\n");}
-                    // then the thing has failed!
-                    // we have failed, so set to not increase everything
-                    pathClear = FALSE;
-                    break;
-                }
-            }
-            if(pathClear == TRUE){
-                // a packet succeeded! INCREMENT THE COUNTER
-                if(DEBUG){printf("packet routed!\n");}
-                packetSuccessCounter++;
-                if(DEBUG){printf("is our length meant to be %d\n",packetQueue->packet->length);}
-                // go through the route and load up the links each by 1
-                // add up the total delay and the number hops to the global numbers while youre at it
-            // ************* INCREMENT UP if we can *************
-                for(x = 0; x + 1 < packetQueue->packet->length; x++){
-                    // so now were going through the packet's path
-                    // and we're updating the links
-                    if(DEBUG2){printf("now incrementing the load of link between %c and %c\n",packetQueue->packet->packetPath[x] + ASCII,packetQueue->packet->packetPath[x+1] + ASCII);}
-                    adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad++;
-                    if(DEBUG2){printf("current load is %d\n",adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad);}
-                    // update stats
-                    totalDelay += adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->distance;
-                }
-                // update stats
-                totalHops += packetQueue->packet->length;
-                // once we've added this, we have to add the packet's kill time to the queue...
-
-                Node blahh = newNode(packetQueue->packet);
-                blahh->next = NULL;
-                packetQueue = addToQueue(blahh, packetQueue);
-                blahh->packet->willDie = TRUE;
-            }
-        }
-
-        // ************* DEATH **************
-        // dying packets must have their burden removed from the appropriate links.
-        else if(packetQueue->packet->willDie == TRUE){
-
-//            if(DEBUG){printf("shit\n");}
-            if(DEBUG){printf("killing a packet!\n");}
-            // ************** INCREMENT DOWN EACH LINK *****************
-            for(x = 0; x + 1 < packetQueue->packet->length; x++){
-                    // so now were going through the packet's path
-                    // and we're updating the links
-                if(DEBUG){printf("now DECREASING the load of link between %c and %c\n",packetQueue->packet->packetPath[x] + ASCII,packetQueue->packet->packetPath[x+1] + ASCII);}
-                adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad--;
-                if(DEBUG2){
-                    printf("current load %d\n", adjMatrix[packetQueue->packet->packetPath[x]][packetQueue->packet->packetPath[x+1]]->currentLoad);
-                }
-            }
-        }
-        packetQueue = popQueue(packetQueue);
-    }
-    // everything is free!
-
-    // we're done!
-    if(DEBUG){printf("\n\nMISSSHHON COMPLEEEE!\n\n\nDebriefing:\n");}
-*/
